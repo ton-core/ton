@@ -1,9 +1,10 @@
-import { beginCell, Cell, ContractProvider } from 'ton-core'
+import { Address, beginCell, Cell, ContractProvider } from 'ton-core'
 import { randomTestKey } from '../utils/randomTestKey'
 import { Order } from './Order'
 import { ContractSystem, testAddress, Treasure } from 'ton-emulator'
 import { MultisigWallet } from './MultisigWallet'
 import { createInternalMessageWithMode } from './testUtils'
+import { createTestClient } from '../utils/createTestClient'
 
 describe('MultisigWallet', () => {
     var publicKeys: Buffer[]
@@ -57,10 +58,20 @@ describe('MultisigWallet', () => {
         await multisig.deployInternal(treasure)
         await system.run()
 
-        let multisigFromProvider = await MultisigWallet.fromAddress(multisig.address, provider)
+        let multisigFromProvider = await MultisigWallet.fromAddress(multisig.address, { provider })
         expect(multisig.address.toRawString()).toEqual(multisigFromProvider.address.toRawString())
         expect(multisig.owners.keys().toString()).toEqual(multisigFromProvider.owners.keys().toString())
         expect(multisig.owners.values().toString()).toEqual(multisigFromProvider.owners.values().toString())
+
+        const testMultisigAddress = Address.parse('EQADBXugwmn4YvWsQizHdWGgfCTN_s3qFP0Ae0pzkU-jwzoE')
+        let multisigFromClient = await MultisigWallet.fromAddress(testMultisigAddress, { client: createTestClient('mainnet') })
+        expect(testMultisigAddress.toRawString()).toEqual(multisigFromClient.address.toRawString())
+        expect(multisigFromClient.owners.keys().toString()).toEqual('0,1,2')
+        expect(multisigFromClient.owners.values().toString()).toEqual([
+            Buffer.from('51ce50ebcced0fdcc7520a2cacf653c81fb49f34f9c570a9e1bb23c7f7186d8d00', 'hex'),
+            Buffer.from('f7a92e5a7b97b81fdc366c4c77298cfd1e9b97ba04feecf0c1d85d63d16d9f2000', 'hex'),
+            Buffer.from('6ec29f8fd53761b94291d5801cda5d0d00c48d78dc6c147ec4c6e088c3d93d8400', 'hex')
+        ].toString())
     })
 
     it('should find order by public key', () => {
