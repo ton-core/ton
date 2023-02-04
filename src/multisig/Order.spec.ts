@@ -1,35 +1,8 @@
 import { beginCell, Cell, Address, CommonMessageInfoRelaxed } from 'ton-core'
 import { randomTestKey } from '../utils/randomTestKey'
-import { testAddress } from '../utils/testAddress'
-import { MessageWithMode } from '../utils/MessageWithMode'
+import { testAddress } from 'ton-emulator'
 import { Order } from './Order'
-
-function createCommonMessageInfoInternal (bounce: boolean, dest: Address, value: bigint): CommonMessageInfoRelaxed {
-    return {
-        bounce,
-        bounced: false,
-        createdAt: 0,
-        createdLt: 0n,
-        dest,
-        forwardFee: 0n,
-        ihrDisabled: true,
-        ihrFee: 0n,
-        type: 'internal',
-        value: {
-            coins: value
-        }
-    }
-}
-
-function createInternalMessageWithMode (bounce: boolean, dest: Address, value: bigint, body: Cell, mode: number = 3): MessageWithMode {
-    return {
-        message: {
-            info: createCommonMessageInfoInternal(bounce, dest, value),
-            body
-        },
-        mode: mode
-    }
-}
+import { createInternalMessageWithMode } from './testUtils'
 
 describe('Order', () => {
     var publicKeys: Buffer[]

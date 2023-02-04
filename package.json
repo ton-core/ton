@@ -45,7 +45,8 @@
     "io-ts": "^2.2.16",
     "io-ts-reporters": "^2.0.0",
     "symbol.inspect": "1.0.1",
-    "teslabot": "^1.3.0"
+    "teslabot": "^1.3.0",
+    "ton-emulator": "^2.1.1"
   },
   "peerDependencies": {
     "ton-core": ">=0.32.0",
