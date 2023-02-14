@@ -1,5 +1,4 @@
-import { Address, CommonMessageInfoRelaxed, Cell } from '../index'
-import { MessageWithMode } from '../utils/MessageWithMode'
+import { Address, CommonMessageInfoRelaxed, Cell, MessageRelaxed } from '../index'
 
 function createCommonMessageInfoInternal (bounce: boolean, dest: Address, value: bigint): CommonMessageInfoRelaxed {
     return {
@@ -18,12 +17,9 @@ function createCommonMessageInfoInternal (bounce: boolean, dest: Address, value:
     }
 }
 
-export function createInternalMessageWithMode (bounce: boolean, dest: Address, value: bigint, body: Cell, mode: number = 3): MessageWithMode {
+export function createInternalMessage (bounce: boolean, dest: Address, value: bigint, body: Cell, mode: number = 3): MessageRelaxed {
     return {
-        message: {
-            info: createCommonMessageInfoInternal(bounce, dest, value),
-            body
-        },
-        mode: mode
+        info: createCommonMessageInfoInternal(bounce, dest, value),
+        body
     }
 }

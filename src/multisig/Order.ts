@@ -1,48 +1,51 @@
 import { sign } from 'ton-crypto'
-import { MessageWithMode } from '../utils/MessageWithMode'
-import { beginCell, Builder, Cell, Dictionary, storeMessageRelaxed } from 'ton-core'
+import { beginCell, Builder, MessageRelaxed, storeMessageRelaxed } from 'ton-core'
 
 export class Order {
-    public messages: MessageWithMode[]
-    public signatures: Dictionary<number, Buffer>
-    public messagesCell: Cell
+    public messages: Builder = beginCell()
+    public signatures: { [key: number]: Buffer } = {}
+    public queryId: bigint = 0n
+    private walletId: number
     private queryOffset: number
 
-    constructor (offset?: number) {
-        this.messages = []
-        this.signatures = Dictionary.empty()
+    constructor (walletId: number, offset?: number) {
+        this.walletId = walletId
         this.queryOffset = offset || 7200
-        this.messagesCell = Cell.EMPTY
     }
 
-    public addMessage (message: MessageWithMode) {
+    public addMessage (message: MessageRelaxed, mode: number) {
+        if (this.messages.refs >= 4) throw('only 4 refs are allowed')
         this.clearSignatures()
-        this.messages.push(message)
-        let b: Builder = beginCell().storeUint(this.getQuerryId(), 64)
-        for (const message of this.messages) {
-            b.storeUint(message.mode, 8)
-            b.storeRef(beginCell().store(storeMessageRelaxed(message.message)).endCell())
-        }
-        this.messagesCell = b.endCell()
+        this.updateQueryId()
+        this.messages.storeUint(mode, 8)
+        this.messages.storeRef(beginCell().store(storeMessageRelaxed(message)).endCell())
     }
 
     public addSignature (ownerId: number, secretKey: Buffer) {
-        this.signatures.set(ownerId, sign(this.messagesCell.hash(), secretKey))
+        const signingHash = beginCell()
+            .storeUint(this.walletId, 32)
+            .storeUint(this.queryId, 64)
+            .storeBuilder(this.messages)
+        .endCell().hash()
+
+        this.signatures[ownerId] = sign(signingHash, secretKey)
     }
 
     public unionSignatures (other: Order) {
-        for (const [key, value] of other.signatures) {
-            this.signatures.set(key, value)
-        }
+        this.signatures = Object.assign({}, this.signatures, other.signatures)
+    }
+
+    public clearMessages () {
+        this.messages = beginCell()
+        this.clearSignatures()
     }
 
     public clearSignatures () {
-        this.signatures = Dictionary.empty()
+        this.signatures = {}
     }
 
-    private getQuerryId () {
+    private updateQueryId () {
         const time = BigInt(Math.floor(Date.now() / 1000 + this.queryOffset))
-        return time << 32n
+        this.queryId = time << 32n
     }
 }
-
