@@ -31,7 +31,7 @@ describe('MultisigWallet', () => {
             publicKeys.push(kp.publicKey);
             secretKeys.push(kp.secretKey);
         }
-    })
+    });
 
     beforeEach(async () => {
         system = await ContractSystem.create();

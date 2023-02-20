@@ -43,7 +43,7 @@ export class MultisigWallet {
 
         const contractState = (await provider.getState()).state;
         if (contractState.type !== 'active') {
-            throw('Contract must be active')
+            throw('Contract must be active');
         }
 
         const data: Slice = Cell.fromBoc(contractState.data!)[0].beginParse();

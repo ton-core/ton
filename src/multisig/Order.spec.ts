@@ -33,12 +33,12 @@ describe('Order', () => {
         order.addMessage(createInternalMessage(true, testAddress('address1'), 2000000000n, Cell.EMPTY), 3);
         order.addSignature(0, secretKeys[0]);
         order.addSignature(1, secretKeys[1]);
-        order.addSignature(2, secretKeys[2])
+        order.addSignature(2, secretKeys[2]);
         expect(Object.keys(order.signatures)).toHaveLength(3);
     });
 
     it('should union signatures', () => {
-        let order1 = new Order(123)
+        let order1 = new Order(123);
         order1.addMessage(createInternalMessage(true, testAddress('address1'), 1000000000n, Cell.EMPTY), 3);
         order1.addMessage(createInternalMessage(true, testAddress('address2'), 0n, beginCell().storeUint(3, 123).endCell()), 3);
         order1.addMessage(createInternalMessage(true, testAddress('address1'), 2000000000n, Cell.EMPTY), 3);
