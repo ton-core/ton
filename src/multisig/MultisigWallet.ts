@@ -102,7 +102,7 @@ export class MultisigWallet {
                     .storeBuffer(signature)
                     .storeUint(parseInt(ownerId), 8)
                     .storeBuilder(b)
-                .endCell());
+                    .endCell());
         }
 
         let cell = beginCell()
