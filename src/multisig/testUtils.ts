@@ -1,6 +1,6 @@
-import { Address, CommonMessageInfoRelaxed, Cell, MessageRelaxed } from '../index'
+import { Address, CommonMessageInfoRelaxed, Cell, MessageRelaxed } from '../index';
 
-function createCommonMessageInfoInternal (bounce: boolean, dest: Address, value: bigint): CommonMessageInfoRelaxed {
+function createCommonMessageInfoInternal(bounce: boolean, dest: Address, value: bigint): CommonMessageInfoRelaxed {
     return {
         bounce,
         bounced: false,
@@ -14,12 +14,12 @@ function createCommonMessageInfoInternal (bounce: boolean, dest: Address, value:
         value: {
             coins: value
         }
-    }
+    };
 }
 
-export function createInternalMessage (bounce: boolean, dest: Address, value: bigint, body: Cell, mode: number = 3): MessageRelaxed {
+export function createInternalMessage(bounce: boolean, dest: Address, value: bigint, body: Cell, mode: number = 3): MessageRelaxed {
     return {
         info: createCommonMessageInfoInternal(bounce, dest, value),
         body
-    }
+    };
 }
