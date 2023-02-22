@@ -3,7 +3,7 @@ import { getSecureRandomBytes, keyPairFromSeed } from 'ton-crypto';
 import { testAddress, ContractSystem, Treasure } from 'ton-emulator';
 import { createTestClient } from '../utils/createTestClient';
 import { MultisigWallet } from './MultisigWallet';
-import { Order } from './Order';
+import { Order, OrderBuilder } from './Order';
 import { createInternalMessage } from './testUtils';
 
 describe('MultisigWallet', () => {
@@ -13,7 +13,7 @@ describe('MultisigWallet', () => {
     var treasure: Treasure;
 
     function createProvider(multisig: MultisigWallet): ContractProvider {
-        const stateInit = multisig.formStateInit();
+        const stateInit = multisig.init;
         return system.provider({
             address: multisig.address,
             init: {
@@ -107,12 +107,12 @@ describe('MultisigWallet', () => {
         await multisig.deployInternal(treasure, 10000000000n);
         await system.run();
 
-        let order = new Order(123);
+        let order = new OrderBuilder(123);
         order.addMessage(createInternalMessage(true, testAddress('address1'), 1000000000n, Cell.EMPTY), 3);
         order.addMessage(createInternalMessage(true, testAddress('address2'), 0n, beginCell().storeUint(3, 123).endCell()), 3);
         order.addMessage(createInternalMessage(true, testAddress('address1'), 2000000000n, Cell.EMPTY), 3);
 
-        await multisig.sendOrder(order, secretKeys[3], provider);
+        await multisig.sendOrder(order.finishOrder(), secretKeys[3], provider);
         let txs = await system.run();
         expect(txs).toHaveLength(1);
         if (txs[0].description.type == 'generic') {
@@ -126,10 +126,11 @@ describe('MultisigWallet', () => {
         await multisig.deployInternal(treasure, 10000000000n);
         await system.run();
 
-        let order = new Order(123);
-        order.addMessage(createInternalMessage(false, testAddress('address1'), 1000000000n, Cell.EMPTY), 3);
-        order.addMessage(createInternalMessage(false, testAddress('address2'), 0n, beginCell().storeUint(3, 123).endCell()), 3);
-        order.addMessage(createInternalMessage(true, testAddress('address1'), 2000000000n, Cell.EMPTY), 3);
+        let orderBuilder = new OrderBuilder(123);
+        orderBuilder.addMessage(createInternalMessage(false, testAddress('address1'), 1000000000n, Cell.EMPTY), 3);
+        orderBuilder.addMessage(createInternalMessage(false, testAddress('address2'), 0n, beginCell().storeUint(3, 123).endCell()), 3);
+        orderBuilder.addMessage(createInternalMessage(true, testAddress('address1'), 2000000000n, Cell.EMPTY), 3);
+        let order = orderBuilder.finishOrder();
 
         for (let i = 0; i < 4; i += 1) {
             await multisig.sendOrder(order, secretKeys[i], provider);
@@ -147,13 +148,14 @@ describe('MultisigWallet', () => {
         await multisig.deployInternal(treasure, 10000000000n);
         await system.run();
 
-        let order = new Order(123);
-        order.addMessage(createInternalMessage(false, testAddress('address1'), 1000000000n, Cell.EMPTY), 3);
-        order.addMessage(createInternalMessage(false, testAddress('address2'), 0n, beginCell().storeUint(3, 123).endCell()), 3);
-        order.addMessage(createInternalMessage(true, testAddress('address1'), 2000000000n, Cell.EMPTY), 3);
+        let orderBuilder = new OrderBuilder(123);
+        orderBuilder.addMessage(createInternalMessage(false, testAddress('address1'), 1000000000n, Cell.EMPTY), 3);
+        orderBuilder.addMessage(createInternalMessage(false, testAddress('address2'), 0n, beginCell().storeUint(3, 123).endCell()), 3);
+        orderBuilder.addMessage(createInternalMessage(true, testAddress('address1'), 2000000000n, Cell.EMPTY), 3);
+        let order = orderBuilder.finishOrder();
 
         for (let i = 0; i < 5; i += 1) {
-            order.addSignature(i, secretKeys[i]);
+            order.sign(i, secretKeys[i]);
         }
 
         await multisig.sendOrder(order, secretKeys[0], provider);
