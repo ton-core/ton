@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) Whales Corp. 
+ * All Rights Reserved.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 import { beginCell, MessageRelaxed, storeMessageRelaxed } from "ton-core";
 import { sign } from "ton-crypto";
 import { Maybe } from "../../utils/maybe";

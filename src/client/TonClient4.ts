@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) Whales Corp. 
+ * All Rights Reserved.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 import axios, { AxiosAdapter } from "axios";
 import * as t from 'io-ts';
 import { Address, beginCell, Cell, comment, Contract, ContractProvider, ContractState, external, loadTransaction, openContract, parseTuple, serializeTuple, StateInit, storeMessage, toNano, Transaction, TupleItem, TupleReader } from "ton-core";

@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) Whales Corp. 
+ * All Rights Reserved.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 import { randomTestKey } from "../utils/randomTestKey";
 import { WalletContractV4 } from "./WalletContractV4";
 import { createTestClient4 } from "../utils/createTestClient4";
