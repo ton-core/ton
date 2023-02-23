@@ -12,6 +12,7 @@ export class MultisigWallet {
     public k: number;
     public address: Address;
     public provider: ContractProvider | null = null;
+    public init: StateInit;
 
     constructor(publicKeys: Buffer[], workchain: number, walletId: number, k: number, opts?: { address?: Address, provider?: ContractProvider, client?: TonClient }) {
         this.owners = Dictionary.empty();
@@ -21,12 +22,22 @@ export class MultisigWallet {
         for (let i = 0; i < publicKeys.length; i += 1) {
             this.owners.set(i, Buffer.concat([publicKeys[i], Buffer.alloc(1)]));
         }
-        const stateInit = this.formStateInit();
-        this.address = opts?.address || contractAddress(workchain, stateInit);
+        this.init = {
+            code: MULTISIG_CODE,
+            data: beginCell()
+                .storeUint(this.walletId, 32)
+                .storeUint(this.owners.size, 8)
+                .storeUint(this.k, 8)
+                .storeUint(0, 64)
+                .storeDict(this.owners, Dictionary.Keys.Uint(8), Dictionary.Values.Buffer(33))
+                .storeBit(0)
+            .endCell()
+        };
+        this.address = opts?.address || contractAddress(workchain, this.init);
         if (opts?.provider) {
             this.provider = opts.provider;
         } else if (opts?.client) {
-            this.provider = opts.client.provider(this.address, { code: stateInit.code!, data: stateInit.data! });
+            this.provider = opts.client.provider(this.address, { code: this.init.code!, data: this.init.data! });
         }
     }
     
@@ -76,7 +87,7 @@ export class MultisigWallet {
             sendMode: 3,
             to: this.address,
             value: value,
-            init: this.formStateInit(),
+            init: this.init,
             body: Cell.EMPTY,
             bounce: true
         });
@@ -108,9 +119,7 @@ export class MultisigWallet {
         let cell = beginCell()
             .storeUint(ownerId, 8)
             .storeBuilder(b)
-            .storeUint(this.walletId, 32)
-            .storeUint(order.queryId, 64)
-            .storeBuilder(order.messages)
+            .storeBuilder(order.messagesCell.asBuilder())
             .endCell();
         
         let signature = sign(cell.hash(), secretKey);
@@ -129,19 +138,5 @@ export class MultisigWallet {
             }
         }
         throw('public key is not an owner');
-    }
-
-    public formStateInit(): StateInit {
-        return {
-            code: MULTISIG_CODE,
-            data: beginCell()
-                .storeUint(this.walletId, 32)
-                .storeUint(this.owners.size, 8)
-                .storeUint(this.k, 8)
-                .storeUint(0, 64)
-                .storeDict(this.owners, Dictionary.Keys.Uint(8), Dictionary.Values.Buffer(33))
-                .storeBit(0)
-                .endCell()
-        };
     }
 }
