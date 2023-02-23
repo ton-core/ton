@@ -43,3 +43,11 @@ export { WalletContractV4 } from './wallets/WalletContractV4';
 
 export { JettonMaster } from './jetton/JettonMaster';
 export { JettonWallet } from './jetton/JettonWallet';
+
+//
+// Multisig
+//
+
+export { MultisigOrder } from './multisig/MultisigOrder';
+export { MultisigOrderBuilder } from './multisig/MultisigOrderBuilder'
+export { MultisigWallet } from './multisig/MultisigWallet'
