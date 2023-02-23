@@ -1,3 +1,5 @@
+/* Made by @Gusarich and @Miandic */
+
 import { sign, signVerify } from 'ton-crypto';
 import { Cell } from 'ton-core';
 import { MultisigWallet } from './MultisigWallet';

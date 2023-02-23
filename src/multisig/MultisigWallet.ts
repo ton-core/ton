@@ -1,3 +1,5 @@
+/* Made by @Gusarich and @Miandic */
+
 import { TonClient } from "../index";
 import { keyPairFromSecretKey, sign } from "ton-crypto";
 import { Address, beginCell, Cell, contractAddress, ContractProvider, Dictionary, Sender, Slice, StateInit } from "ton-core";

@@ -1,3 +1,5 @@
+/* Made by @Gusarich and @Miandic */
+
 import { beginCell, Builder, MessageRelaxed, storeMessageRelaxed } from 'ton-core';
 import { MultisigOrder } from './MultisigOrder';
 
