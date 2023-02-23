@@ -40,5 +40,6 @@ export { JettonWallet } from './jetton/JettonWallet';
 // Multisig
 //
 
-export { Order, OrderBuilder } from './multisig/Order';
+export { MultisigOrder } from './multisig/MultisigOrder';
+export { MultisigOrderBuilder } from './multisig/MultisigOrderBuilder'
 export { MultisigWallet } from './multisig/MultisigWallet'

@@ -2,7 +2,7 @@ import { beginCell, Cell } from 'ton-core';
 import { getSecureRandomBytes, keyPairFromSeed, sign } from 'ton-crypto';
 import { testAddress } from 'ton-emulator';
 import { createInternalMessage } from './testUtils';
-import { OrderBuilder } from './Order';
+import { MultisigOrderBuilder } from './MultisigOrderBuilder';
 import { MultisigWallet } from './MultisigWallet';
 
 describe('Order', () => {
@@ -20,7 +20,7 @@ describe('Order', () => {
     });
 
     it('should add messages', () => {
-        let order = new OrderBuilder(123);
+        let order = new MultisigOrderBuilder(123);
         order.addMessage(createInternalMessage(true, testAddress('address1'), 1000000000n, Cell.EMPTY), 3);
         order.addMessage(createInternalMessage(true, testAddress('address2'), 0n, beginCell().storeUint(3, 123).endCell()), 3);
         order.addMessage(createInternalMessage(true, testAddress('address1'), 2000000000n, Cell.EMPTY), 3);
@@ -28,7 +28,7 @@ describe('Order', () => {
     });
 
     it('should add signatures', () => {
-        let orderBuilder = new OrderBuilder(123);
+        let orderBuilder = new MultisigOrderBuilder(123);
         orderBuilder.addMessage(createInternalMessage(true, testAddress('address1'), 1000000000n, Cell.EMPTY), 3);
         orderBuilder.addMessage(createInternalMessage(true, testAddress('address2'), 0n, beginCell().storeUint(3, 123).endCell()), 3);
         orderBuilder.addMessage(createInternalMessage(true, testAddress('address1'), 2000000000n, Cell.EMPTY), 3);
@@ -40,7 +40,7 @@ describe('Order', () => {
     });
 
     it('should union signatures', () => {
-        let order1Builder = new OrderBuilder(123);
+        let order1Builder = new MultisigOrderBuilder(123);
         order1Builder.addMessage(createInternalMessage(true, testAddress('address1'), 1000000000n, Cell.EMPTY), 3);
         order1Builder.addMessage(createInternalMessage(true, testAddress('address2'), 0n, beginCell().storeUint(3, 123).endCell()), 3);
         order1Builder.addMessage(createInternalMessage(true, testAddress('address1'), 2000000000n, Cell.EMPTY), 3);
@@ -48,7 +48,7 @@ describe('Order', () => {
         order1.sign(0, secretKeys[0]);
         order1.sign(1, secretKeys[1]);
         order1.sign(2, secretKeys[2]);
-        let order2Builder = new OrderBuilder(123);
+        let order2Builder = new MultisigOrderBuilder(123);
         order2Builder.addMessage(createInternalMessage(true, testAddress('address1'), 1000000000n, Cell.EMPTY), 3);
         order2Builder.addMessage(createInternalMessage(true, testAddress('address2'), 0n, beginCell().storeUint(3, 123).endCell()), 3);
         order2Builder.addMessage(createInternalMessage(true, testAddress('address1'), 2000000000n, Cell.EMPTY), 3);
@@ -61,7 +61,7 @@ describe('Order', () => {
     });
 
     it('should clear signatures', () => {
-        let orderBuilder = new OrderBuilder(123);
+        let orderBuilder = new MultisigOrderBuilder(123);
         orderBuilder.addMessage(createInternalMessage(true, testAddress('address1'), 1000000000n, Cell.EMPTY), 3);
         orderBuilder.addMessage(createInternalMessage(true, testAddress('address2'), 0n, beginCell().storeUint(3, 123).endCell()), 3);
         orderBuilder.addMessage(createInternalMessage(true, testAddress('address1'), 2000000000n, Cell.EMPTY), 3);
@@ -74,7 +74,7 @@ describe('Order', () => {
     });
 
     it('should clear messages', () => {
-        let orderBuilder = new OrderBuilder(123);
+        let orderBuilder = new MultisigOrderBuilder(123);
         orderBuilder.addMessage(createInternalMessage(true, testAddress('address1'), 1000000000n, Cell.EMPTY), 3);
         orderBuilder.addMessage(createInternalMessage(true, testAddress('address2'), 0n, beginCell().storeUint(3, 123).endCell()), 3);
         orderBuilder.addMessage(createInternalMessage(true, testAddress('address1'), 2000000000n, Cell.EMPTY), 3);
@@ -83,7 +83,7 @@ describe('Order', () => {
     })
 
     it('should add signatures without secret key', () => {
-        let orderBuilder = new OrderBuilder(123);
+        let orderBuilder = new MultisigOrderBuilder(123);
         orderBuilder.addMessage(createInternalMessage(true, testAddress('address1'), 1000000000n, Cell.EMPTY), 3);
         orderBuilder.addMessage(createInternalMessage(true, testAddress('address2'), 0n, beginCell().storeUint(3, 123).endCell()), 3);
         orderBuilder.addMessage(createInternalMessage(true, testAddress('address1'), 2000000000n, Cell.EMPTY), 3);

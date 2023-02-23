@@ -3,7 +3,7 @@ import { getSecureRandomBytes, keyPairFromSeed } from 'ton-crypto';
 import { testAddress, ContractSystem, Treasure } from 'ton-emulator';
 import { createTestClient } from '../utils/createTestClient';
 import { MultisigWallet } from './MultisigWallet';
-import { Order, OrderBuilder } from './Order';
+import { MultisigOrderBuilder } from './MultisigOrderBuilder';
 import { createInternalMessage } from './testUtils';
 
 describe('MultisigWallet', () => {
@@ -107,7 +107,7 @@ describe('MultisigWallet', () => {
         await multisig.deployInternal(treasure, 10000000000n);
         await system.run();
 
-        let order = new OrderBuilder(123);
+        let order = new MultisigOrderBuilder(123);
         order.addMessage(createInternalMessage(true, testAddress('address1'), 1000000000n, Cell.EMPTY), 3);
         order.addMessage(createInternalMessage(true, testAddress('address2'), 0n, beginCell().storeUint(3, 123).endCell()), 3);
         order.addMessage(createInternalMessage(true, testAddress('address1'), 2000000000n, Cell.EMPTY), 3);
@@ -126,7 +126,7 @@ describe('MultisigWallet', () => {
         await multisig.deployInternal(treasure, 10000000000n);
         await system.run();
 
-        let orderBuilder = new OrderBuilder(123);
+        let orderBuilder = new MultisigOrderBuilder(123);
         orderBuilder.addMessage(createInternalMessage(false, testAddress('address1'), 1000000000n, Cell.EMPTY), 3);
         orderBuilder.addMessage(createInternalMessage(false, testAddress('address2'), 0n, beginCell().storeUint(3, 123).endCell()), 3);
         orderBuilder.addMessage(createInternalMessage(true, testAddress('address1'), 2000000000n, Cell.EMPTY), 3);
@@ -148,7 +148,7 @@ describe('MultisigWallet', () => {
         await multisig.deployInternal(treasure, 10000000000n);
         await system.run();
 
-        let orderBuilder = new OrderBuilder(123);
+        let orderBuilder = new MultisigOrderBuilder(123);
         orderBuilder.addMessage(createInternalMessage(false, testAddress('address1'), 1000000000n, Cell.EMPTY), 3);
         orderBuilder.addMessage(createInternalMessage(false, testAddress('address2'), 0n, beginCell().storeUint(3, 123).endCell()), 3);
         orderBuilder.addMessage(createInternalMessage(true, testAddress('address1'), 2000000000n, Cell.EMPTY), 3);
