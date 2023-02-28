@@ -21,7 +21,7 @@ export class MultisigOrderBuilder {
 
     public addMessage(message: MessageRelaxed, mode: number) {
         if (this.messages.refs >= 4) {
-            throw 'only 4 refs are allowed';
+            throw Error('only 4 refs are allowed');
         }
         this.updateQueryId();
         this.messages.storeUint(mode, 8);
@@ -34,8 +34,8 @@ export class MultisigOrderBuilder {
         this.messages = beginCell();
     }
 
-    public finishOrder() {
-        return new MultisigOrder(
+    public build() {
+        return MultisigOrder.fromPayload(
             beginCell()
                 .storeUint(this.walletId, 32)
                 .storeUint(this.queryId, 64)

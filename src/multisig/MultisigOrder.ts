@@ -5,11 +5,11 @@ import { beginCell, Cell } from 'ton-core';
 import { MultisigWallet } from './MultisigWallet';
 
 export class MultisigOrder {
-    public readonly messagesCell: Cell;
+    public readonly payload: Cell;
     public signatures: { [key: number]: Buffer } = {};
 
-    constructor(messagesCell: Cell) {
-        this.messagesCell = messagesCell;
+    private constructor(payload: Cell) {
+        this.payload = payload;
     }
 
     public static fromCell(cell: Cell): MultisigOrder {
@@ -36,12 +36,16 @@ export class MultisigOrder {
         return order;
     }
 
+    public static fromPayload(payload: Cell): MultisigOrder {
+        return new MultisigOrder(payload);
+    }
+
     public addSignature(
         ownerId: number,
         signature: Buffer,
         multisig: MultisigWallet
     ) {
-        const signingHash = this.messagesCell.hash();
+        const signingHash = this.payload.hash();
         if (
             !signVerify(
                 signingHash,
@@ -49,14 +53,15 @@ export class MultisigOrder {
                 multisig.owners.get(ownerId)!.slice(0, -1)
             )
         ) {
-            throw 'invalid signature';
+            throw Error('invalid signature');
         }
         this.signatures[ownerId] = signature;
     }
 
     public sign(ownerId: number, secretKey: Buffer) {
-        const signingHash = this.messagesCell.hash();
+        const signingHash = this.payload.hash();
         this.signatures[ownerId] = sign(signingHash, secretKey);
+        return signingHash;
     }
 
     public unionSignatures(other: MultisigOrder) {
@@ -67,7 +72,7 @@ export class MultisigOrder {
         this.signatures = {};
     }
 
-    public exportToCell(ownerId: number): Cell {
+    public toCell(ownerId: number): Cell {
         let b = beginCell().storeBit(0);
         for (const ownerId in this.signatures) {
             const signature = this.signatures[ownerId];
@@ -85,7 +90,7 @@ export class MultisigOrder {
         return beginCell()
             .storeUint(ownerId, 8)
             .storeBuilder(b)
-            .storeBuilder(this.messagesCell.asBuilder())
+            .storeBuilder(this.payload.asBuilder())
             .endCell();
     }
 }

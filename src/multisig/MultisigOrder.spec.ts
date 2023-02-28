@@ -108,7 +108,7 @@ describe('MultisigOrder', () => {
             ),
             3
         );
-        let order = orderBuilder.finishOrder();
+        let order = orderBuilder.build();
         order.sign(0, secretKeys[0]);
         order.sign(1, secretKeys[1]);
         order.sign(2, secretKeys[2]);
@@ -144,7 +144,7 @@ describe('MultisigOrder', () => {
             ),
             3
         );
-        let order1 = order1Builder.finishOrder();
+        let order1 = order1Builder.build();
         order1.sign(0, secretKeys[0]);
         order1.sign(1, secretKeys[1]);
         order1.sign(2, secretKeys[2]);
@@ -176,7 +176,7 @@ describe('MultisigOrder', () => {
             ),
             3
         );
-        let order2 = order2Builder.finishOrder();
+        let order2 = order2Builder.build();
         order2.sign(3, secretKeys[3]);
         order2.sign(2, secretKeys[2]);
         order2.sign(5, secretKeys[5]);
@@ -213,7 +213,7 @@ describe('MultisigOrder', () => {
             ),
             3
         );
-        let order = orderBuilder.finishOrder();
+        let order = orderBuilder.build();
         order.sign(0, secretKeys[0]);
         order.sign(1, secretKeys[1]);
         order.sign(2, secretKeys[2]);
@@ -283,11 +283,11 @@ describe('MultisigOrder', () => {
             ),
             3
         );
-        let order = orderBuilder.finishOrder();
+        let order = orderBuilder.build();
         order.sign(0, secretKeys[0]);
         order.addSignature(
             1,
-            sign(order.messagesCell.hash(), secretKeys[1]),
+            sign(order.payload.hash(), secretKeys[1]),
             new MultisigWallet(publicKeys, 0, 123, 2)
         );
         expect(Object.keys(order.signatures)).toHaveLength(2);
@@ -373,7 +373,7 @@ describe('MultisigOrder', () => {
             ),
             3
         );
-        let order = orderBuilder.finishOrder();
+        let order = orderBuilder.build();
         order.sign(0, secretKeys[0]);
         expect(() =>
             order.addSignature(
@@ -410,7 +410,7 @@ describe('MultisigOrder', () => {
         const order2 = MultisigOrder.fromCell(order2Cell);
         const order3 = MultisigOrder.fromCell(order3Cell);
 
-        expect(order1.messagesCell.refs).toHaveLength(1);
+        expect(order1.payload.refs).toHaveLength(1);
         expect(Object.keys(order1.signatures)).toHaveLength(0);
         expect(Object.keys(order2.signatures)).toHaveLength(1);
         expect(Object.keys(order3.signatures)).toHaveLength(2);

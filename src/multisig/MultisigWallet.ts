@@ -81,7 +81,7 @@ export class MultisigWallet {
             provider = opts.provider;
         } else {
             if (!opts.client) {
-                throw 'Either provider or client must be specified';
+                throw Error('Either provider or client must be specified');
             }
             provider = opts.client.provider(address, {
                 code: null,
@@ -91,7 +91,7 @@ export class MultisigWallet {
 
         const contractState = (await provider.getState()).state;
         if (contractState.type !== 'active') {
-            throw 'Contract must be active';
+            throw Error('Contract must be active');
         }
 
         const data: Slice = Cell.fromBoc(contractState.data!)[0].beginParse();
@@ -118,7 +118,7 @@ export class MultisigWallet {
 
     public async deployExternal(provider?: ContractProvider) {
         if (!provider && !this.provider) {
-            throw 'you must specify provider if there is no such property in MultisigWallet instance';
+            throw Error('you must specify provider if there is no such property in MultisigWallet instance');
         }
         if (!provider) {
             provider = this.provider!;
@@ -143,7 +143,7 @@ export class MultisigWallet {
         provider?: ContractProvider
     ) {
         if (!provider && !this.provider) {
-            throw 'you must specify provider if there is no such property in MultisigWallet instance';
+            throw Error('you must specify provider if there is no such property in MultisigWallet instance');
         }
         if (!provider) {
             provider = this.provider!;
@@ -151,7 +151,7 @@ export class MultisigWallet {
 
         let publicKey: Buffer = keyPairFromSecretKey(secretKey).publicKey;
         let ownerId: number = this.getOwnerIdByPubkey(publicKey);
-        let cell = order.exportToCell(ownerId);
+        let cell = order.toCell(ownerId);
 
         let signature = sign(cell.hash(), secretKey);
         cell = beginCell()
@@ -168,6 +168,6 @@ export class MultisigWallet {
                 return key;
             }
         }
-        throw 'public key is not an owner';
+        throw Error('public key is not an owner');
     }
 }

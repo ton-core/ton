@@ -36,7 +36,7 @@ export function createWalletTransferV2(args: { seqno: number, sendMode: number, 
 
     // Check number of messages
     if (args.messages.length > 4) {
-        throw new Error("Maximum number of messages in a single transfer is 4");
+        throw Error("Maximum number of messages in a single transfer is 4");
     }
 
     // Create message
@@ -77,7 +77,7 @@ export function createWalletTransferV3(args: {
 
     // Check number of messages
     if (args.messages.length > 4) {
-        throw new Error("Maximum number of messages in a single transfer is 4");
+        throw Error("Maximum number of messages in a single transfer is 4");
     }
 
     // Create message to sign
@@ -119,7 +119,7 @@ export function createWalletTransferV4(args: {
 
     // Check number of messages
     if (args.messages.length > 4) {
-        throw new Error("Maximum number of messages in a single transfer is 4");
+        throw Error("Maximum number of messages in a single transfer is 4");
     }
 
     let signingMessage = beginCell()
