@@ -55,10 +55,11 @@ let balance: bigint = await contract.getBalance();
 let seqno: number = await contract.getSeqno();
 let transfer = await contract.createTransfer({
   seqno,
+  secretKey: keyPair.secretKey,
   messages: [internal({
     value: '1.5',
-    dest: 'EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N',
-    body: 'Hello world'
+    to: 'EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N',
+    body: 'Hello world',
   })]
 });
 
