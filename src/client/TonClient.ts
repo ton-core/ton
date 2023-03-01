@@ -65,12 +65,24 @@ export class TonClient {
      * @param params optional parameters
      * @returns stack and gas_used field
      */
-    async callGetMethod(address: Address, name: string, stack: TupleItem[] = []): Promise<{ gas_used: number, stack: TupleReader }> {
+    async runMethod(address: Address, name: string, stack: TupleItem[] = []): Promise<{ gas_used: number, stack: TupleReader }> {
         let res = await this.#api.callGetMethod(address, name, stack);
         if (res.exit_code !== 0) {
             throw Error('Unable to execute get method. Got exit_code: ' + res.exit_code);
         }
         return { gas_used: res.gas_used, stack: parseStack(res.stack) };
+    }
+
+    /**
+     * Invoke get method
+     * @param address contract address
+     * @param name name of method
+     * @param params optional parameters
+     * @returns stack and gas_used field
+     * @deprecated use runMethod instead
+     */
+    async callGetMethod(address: Address, name: string, stack: TupleItem[] = []): Promise<{ gas_used: number, stack: TupleReader }> {
+        return this.runMethod(address, name, stack);
     }
 
     /**
@@ -80,9 +92,21 @@ export class TonClient {
      * @param params optional parameters
      * @returns stack and gas_used field
     */
-    async callGetMethodWithError(address: Address, name: string, params: any[] = []): Promise<{ gas_used: number, stack: TupleReader, exit_code: number }> {
+    async runMethodWithError(address: Address, name: string, params: any[] = []): Promise<{ gas_used: number, stack: TupleReader, exit_code: number }> {
         let res = await this.#api.callGetMethod(address, name, params);
         return { gas_used: res.gas_used, stack: parseStack(res.stack), exit_code: res.exit_code };
+    }
+
+    /**
+     * Invoke get method that returns error code instead of throwing error
+     * @param address contract address
+     * @param name name of method
+     * @param params optional parameters
+     * @returns stack and gas_used field
+     * @deprecated use runMethodWithError instead
+     */
+    async callGetMethodWithError(address: Address, name: string, stack: TupleItem[] = []): Promise<{ gas_used: number, stack: TupleReader }> {
+        return this.runMethodWithError(address, name, stack);
     }
 
     /**

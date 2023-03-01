@@ -115,6 +115,17 @@ export class TonClient4 {
     }
 
     /**
+     * Check if contract is deployed
+     * @param address addres to check
+     * @returns true if contract is in active state
+     */
+    async isContractDeployed(seqno: number, address: Address) {
+        let account = await this.getAccountLite(seqno, address);
+
+        return account.account.state.type === 'active';
+    }
+
+    /**
      * Check if account was updated since
      * @param seqno block sequence number
      * @param address account address
@@ -149,7 +160,7 @@ export class TonClient4 {
             throw Error('Mailformed response');
 
         const txcell = Cell.fromBoc(Buffer.from(res.data.boc, 'base64'))[0];
-        return { tx:  loadTransaction(txcell.beginParse()), ...res.data }
+        return { tx: loadTransaction(txcell.beginParse()), ...res.data }
     }
 
     /**
@@ -218,12 +229,14 @@ export class TonClient4 {
         if (!runMethodCodec.is(res.data)) {
             throw Error('Mailformed response');
         }
+        let resultTuple = res.data.resultRaw ? parseTuple(Cell.fromBoc(Buffer.from(res.data.resultRaw, 'base64'))[0]) : [];
         return {
             exitCode: res.data.exitCode,
-            result: res.data.resultRaw ? parseTuple(Cell.fromBoc(Buffer.from(res.data.resultRaw, 'base64'))[0]) : [],
+            result: resultTuple,
             resultRaw: res.data.resultRaw,
             block: res.data.block,
             shardBlock: res.data.shardBlock,
+            reader: new TupleReader(resultTuple),
         };
     }
 
