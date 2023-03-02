@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.4.1] - 2023-03-02
 
+## Added
+- call get method aliases for TonClient (#7)
+- add isContractDeployed to TonClient4 (#6)
+
 ## Fixed
 - Updated `ton-core` to depend from 0.48.0
 - Fixed typos in `SendMode`
