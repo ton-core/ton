@@ -97,7 +97,7 @@ export class WalletContractV4 implements Contract {
         sendMode?: Maybe<SendMode>,
         timeout?: Maybe<number>,
     }) {
-        let sendMode = SendMode.PAY_GAS_SEPARATLY;
+        let sendMode = SendMode.PAY_GAS_SEPARATELY;
         if (args.sendMode !== null && args.sendMode !== undefined) {
             sendMode = args.sendMode;
         }

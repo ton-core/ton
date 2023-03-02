@@ -90,7 +90,7 @@ export class WalletContractV3R2 implements Contract {
      * Create transfer
      */
     createTransfer(args: { seqno: number, sendMode?: Maybe<SendMode>, secretKey: Buffer, messages: MessageRelaxed[], timeout?: Maybe<number> }) {
-        let sendMode = SendMode.PAY_GAS_SEPARATLY;
+        let sendMode = SendMode.PAY_GAS_SEPARATELY;
         if (args.sendMode !== null && args.sendMode !== undefined) {
             sendMode = args.sendMode;
         }
