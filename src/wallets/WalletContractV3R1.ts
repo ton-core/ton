@@ -8,7 +8,7 @@
 
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, internal, MessageRelaxed, Sender, SendMode } from "ton-core";
 import { Maybe } from "../utils/maybe";
-import { createWalletTransferV3 } from "./signing/createWalletTransfer";
+import { createSigningMessageV3, createSigningTransferMessage, createUnSigningTransferMessage } from "./signing/createWalletTransfer";
 
 export class WalletContractV3R1 implements Contract {
 
@@ -91,7 +91,7 @@ export class WalletContractV3R1 implements Contract {
      */
     createTransfer(args: {
         seqno: number,
-        secretKey: Buffer,
+        secretKey?: Buffer,
         messages: MessageRelaxed[],
         sendMode?: Maybe<SendMode>,
         timeout?: Maybe<number>
@@ -100,14 +100,24 @@ export class WalletContractV3R1 implements Contract {
         if (args.sendMode !== null && args.sendMode !== undefined) {
             sendMode = args.sendMode;
         }
-        return createWalletTransferV3({
+        const signingMessage = createSigningMessageV3({
             seqno: args.seqno,
             sendMode,
-            secretKey: args.secretKey,
             messages: args.messages,
             timeout: args.timeout,
             walletId: this.walletId
         });
+
+        if (args.secretKey) {
+            return createSigningTransferMessage({
+                secretKey: args.secretKey,
+                signingMessage
+            });
+        } else {
+            return createUnSigningTransferMessage({
+                signingMessage,
+            });
+        }
     }
 
     /**

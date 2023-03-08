@@ -10,6 +10,7 @@ import { randomTestKey } from "../utils/randomTestKey";
 import { createTestClient4 } from "../utils/createTestClient4";
 import { Address, internal } from "ton-core";
 import { WalletContractV2R2 } from "./WalletContractV2R2";
+import { createTestClient } from "../utils/createTestClient";
 
 describe('WalletContractV2R2', () => {
     it('should has balance and correct address', async () => {
@@ -44,5 +45,30 @@ describe('WalletContractV2R2', () => {
 
         // Perform transfer
         await contract.send(transfer);
+    });
+
+    it('should perform estimation', async () => {
+        // Create contract
+        let client = createTestClient();
+        let contract = client.open(WalletContractV2R2.create({ workchain: 0, publicKey: randomTestKey('v4-treasure').publicKey }));
+
+        // Prepare transfer
+        let seqno = await contract.getSeqno();
+        let transfer = contract.createTransfer({
+            seqno,
+            messages: [internal({
+                to: 'kQD6oPnzaaAMRW24R8F0_nlSsJQni0cGHntR027eT9_sgtwt',
+                value: '0.1',
+                body: 'Hello, world!'
+            })]
+        });
+
+        // Perform estimation
+        await client.estimateExternalMessageFee(contract.address, {
+            body: transfer,
+            initCode: contract.init.code,
+            initData: contract.init.data,
+            ignoreSignature: true
+        });
     });
 });

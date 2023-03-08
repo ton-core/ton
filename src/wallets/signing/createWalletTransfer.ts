@@ -6,11 +6,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import { beginCell, MessageRelaxed, storeMessageRelaxed } from "ton-core";
+import { beginCell, Builder, MessageRelaxed, storeMessageRelaxed } from "ton-core";
 import { sign } from "ton-crypto";
 import { Maybe } from "../../utils/maybe";
 
-export function createWalletTransferV1(args: { seqno: number, sendMode: number, message: Maybe<MessageRelaxed>, secretKey: Buffer }) {
+export function createSigningMessageV1(args: { seqno: number, sendMode: number, message: Maybe<MessageRelaxed> }) {
 
     // Create message
     let signingMessage = beginCell()
@@ -20,19 +20,10 @@ export function createWalletTransferV1(args: { seqno: number, sendMode: number, 
         signingMessage.storeRef(beginCell().store(storeMessageRelaxed(args.message)));
     }
 
-    // Sign message
-    let signature = sign(signingMessage.endCell().hash(), args.secretKey);
-
-    // Body
-    const body = beginCell()
-        .storeBuffer(signature)
-        .storeBuilder(signingMessage)
-        .endCell();
-
-    return body;
+    return signingMessage;
 }
 
-export function createWalletTransferV2(args: { seqno: number, sendMode: number, messages: MessageRelaxed[], secretKey: Buffer, timeout?: Maybe<number> }) {
+export function createSigningMessageV2(args: { seqno: number, sendMode: number, messages: MessageRelaxed[], timeout?: Maybe<number> }) {
 
     // Check number of messages
     if (args.messages.length > 4) {
@@ -54,24 +45,15 @@ export function createWalletTransferV2(args: { seqno: number, sendMode: number, 
         signingMessage.storeRef(beginCell().store(storeMessageRelaxed(m)));
     }
 
-    // Sign message
-    let signature = sign(signingMessage.endCell().hash(), args.secretKey);
+    return signingMessage;
 
-    // Body
-    const body = beginCell()
-        .storeBuffer(signature)
-        .storeBuilder(signingMessage)
-        .endCell();
-
-    return body;
 }
 
-export function createWalletTransferV3(args: {
+export function createSigningMessageV3(args: {
     seqno: number,
     sendMode: number,
     walletId: number,
     messages: MessageRelaxed[],
-    secretKey: Buffer,
     timeout?: Maybe<number>
 }) {
 
@@ -96,28 +78,17 @@ export function createWalletTransferV3(args: {
         signingMessage.storeRef(beginCell().store(storeMessageRelaxed(m)));
     }
 
-    // Sign message
-    let signature = sign(signingMessage.endCell().hash(), args.secretKey);
-
-    // Body
-    const body = beginCell()
-        .storeBuffer(signature)
-        .storeBuilder(signingMessage)
-        .endCell();
-
-    return body;
+    return signingMessage;
 }
 
-export function createWalletTransferV4(args: {
+export function createSigningMessageV4(args: {
     seqno: number,
     sendMode: number,
     walletId: number,
     messages: MessageRelaxed[],
-    secretKey: Buffer,
     timeout?: Maybe<number>
 }) {
-
-    // Check number of messages
+  // Check number of messages
     if (args.messages.length > 4) {
         throw Error("Maximum number of messages in a single transfer is 4");
     }
@@ -138,13 +109,30 @@ export function createWalletTransferV4(args: {
         signingMessage.storeRef(beginCell().store(storeMessageRelaxed(m)));
     }
 
+    return signingMessage;
+}
+
+export function createSigningTransferMessage(args: { signingMessage: Builder, secretKey: Buffer }) {
     // Sign message
-    let signature: Buffer = sign(signingMessage.endCell().hash(), args.secretKey);
+    let signature: Buffer = sign(args.signingMessage.endCell().hash(), args.secretKey);
 
     // Body
     const body = beginCell()
         .storeBuffer(signature)
-        .storeBuilder(signingMessage)
+        .storeBuilder(args.signingMessage)
+        .endCell();
+
+    return body;
+}
+
+export function createUnSigningTransferMessage(args: { signingMessage: Builder }) {
+    // Empty signature for transaction estimation
+    let signature = Buffer.alloc(64);
+
+    // Body
+    const body = beginCell()
+        .storeBuffer(signature) 
+        .storeBuilder(args.signingMessage)
         .endCell();
 
     return body;
