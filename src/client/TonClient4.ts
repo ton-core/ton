@@ -7,10 +7,10 @@
  */
 
 import axios, { AxiosAdapter } from "axios";
-import * as t from 'io-ts';
 import { Address, beginCell, Cell, comment, Contract, ContractProvider, ContractState, external, loadTransaction, openContract, parseTuple, serializeTuple, StateInit, storeMessage, toNano, Transaction, TupleItem, TupleReader } from "ton-core";
 import { Maybe } from "../utils/maybe";
 import { toUrlSafe } from "../utils/toUrlSafe";
+import { z } from 'zod';
 
 export type TonClient4Parameters = {
 
@@ -48,10 +48,11 @@ export class TonClient4 {
      */
     async getLastBlock() {
         let res = await axios.get(this.#endpoint + '/block/latest', { adapter: this.#adapter, timeout: this.#timeout });
-        if (!lastBlockCodec.is(res.data)) {
-            throw Error('Mailformed response');
+        let lastBlock = lastBlockCodec.safeParse(res.data);
+        if (!lastBlock.success) {
+            throw Error('Mailformed response: ' + lastBlock.error.format()._errors.join(', '));
         }
-        return res.data;
+        return lastBlock.data;
     }
 
     /**
@@ -61,13 +62,14 @@ export class TonClient4 {
      */
     async getBlock(seqno: number) {
         let res = await axios.get(this.#endpoint + '/block/' + seqno, { adapter: this.#adapter, timeout: this.#timeout });
-        if (!blockCodec.is(res.data)) {
+        let block = blockCodec.safeParse(res.data);
+        if (!block.success) {
             throw Error('Mailformed response');
         }
-        if (!res.data.exist) {
+        if (!block.data.exist) {
             throw Error('Block is out of scope');
         }
-        return res.data.block;
+        return block.data.block;
     }
 
     /**
@@ -77,13 +79,14 @@ export class TonClient4 {
      */
     async getBlockByUtime(ts: number) {
         let res = await axios.get(this.#endpoint + '/block/utime/' + ts, { adapter: this.#adapter, timeout: this.#timeout });
-        if (!blockCodec.is(res.data)) {
+        let block = blockCodec.safeParse(res.data);
+        if (!block.success) {
             throw Error('Mailformed response');
         }
-        if (!res.data.exist) {
+        if (!block.data.exist) {
             throw Error('Block is out of scope');
         }
-        return res.data.block;
+        return block.data.block;
     }
 
     /**
@@ -94,10 +97,11 @@ export class TonClient4 {
      */
     async getAccount(seqno: number, address: Address) {
         let res = await axios.get(this.#endpoint + '/block/' + seqno + '/' + address.toString({ urlSafe: true }), { adapter: this.#adapter, timeout: this.#timeout });
-        if (!accountCodec.is(res.data)) {
+        let account = accountCodec.safeParse(res.data);
+        if (!account.success) {
             throw Error('Mailformed response');
         }
-        return res.data;
+        return account.data;
     }
 
     /**
@@ -108,10 +112,11 @@ export class TonClient4 {
      */
     async getAccountLite(seqno: number, address: Address) {
         let res = await axios.get(this.#endpoint + '/block/' + seqno + '/' + address.toString({ urlSafe: true }) + '/lite', { adapter: this.#adapter, timeout: this.#timeout });
-        if (!accountLiteCodec.is(res.data)) {
+        let account = accountLiteCodec.safeParse(res.data);
+        if (!account.success) {
             throw Error('Mailformed response');
         }
-        return res.data;
+        return account.data;
     }
 
     /**
@@ -134,33 +139,11 @@ export class TonClient4 {
      */
     async isAccountChanged(seqno: number, address: Address, lt: bigint) {
         let res = await axios.get(this.#endpoint + '/block/' + seqno + '/' + address.toString({ urlSafe: true }) + '/changed/' + lt.toString(10), { adapter: this.#adapter, timeout: this.#timeout });
-        if (!changedCodec.is(res.data)) {
+        let changed = changedCodec.safeParse(res.data);
+        if (!changed.success) {
             throw Error('Mailformed response');
         }
-        return res.data;
-    }
-
-    /**
-     * Load one unparsed account transaction
-     * @param seqno block sequence number
-     * @param address account address
-     * @param lt account last transaction lt
-     * @returns one unparsed transaction
-     */
-    async getTransaction(seqno: number, address: Address, lt: bigint) {
-        const urladdr = address.toString({ urlSafe: true });
-        const urlpath = `/block/${seqno}/${urladdr}/tx/${lt.toString(10)}`;
-
-        const res = await axios.get(
-            new URL(urlpath, this.#endpoint).href,
-            { adapter: this.#adapter, timeout: this.#timeout }
-        );
-
-        if (!transactionCodec.is(res.data))
-            throw Error('Mailformed response');
-
-        const txcell = Cell.fromBoc(Buffer.from(res.data.boc, 'base64'))[0];
-        return { tx: loadTransaction(txcell.beginParse()), ...res.data }
+        return changed.data;
     }
 
     /**
@@ -172,10 +155,11 @@ export class TonClient4 {
      */
     async getAccountTransactions(address: Address, lt: bigint, hash: Buffer) {
         let res = await axios.get(this.#endpoint + '/account/' + address.toString({ urlSafe: true }) + '/tx/' + lt.toString(10) + '/' + toUrlSafe(hash.toString('base64')), { adapter: this.#adapter, timeout: this.#timeout });
-        if (!transactionsCodec.is(res.data)) {
+        let transactions = transactionsCodec.safeParse(res.data);
+        if (!transactions.success) {
             throw Error('Mailformed response');
         }
-        let data = res.data;
+        let data = transactions.data;
         let tx: {
             block: {
                 workchain: number;
@@ -208,10 +192,11 @@ export class TonClient4 {
             tail = '/' + [...ids].sort().join(',');
         }
         let res = await axios.get(this.#endpoint + '/block/' + seqno + '/config' + tail, { adapter: this.#adapter, timeout: this.#timeout });
-        if (!configCodec.is(res.data)) {
+        let config = configCodec.safeParse(res.data);
+        if (!config.success) {
             throw Error('Mailformed response');
         }
-        return res.data;
+        return config.data;
     }
 
     /**
@@ -226,16 +211,17 @@ export class TonClient4 {
         let tail = args && args.length > 0 ? '/' + toUrlSafe(serializeTuple(args).toBoc({ idx: false, crc32: false }).toString('base64')) : '';
         let url = this.#endpoint + '/block/' + seqno + '/' + address.toString({ urlSafe: true }) + '/run/' + name + tail;
         let res = await axios.get(url, { adapter: this.#adapter, timeout: this.#timeout });
-        if (!runMethodCodec.is(res.data)) {
+        let runMethod = runMethodCodec.safeParse(res.data);
+        if (!runMethod.success) {
             throw Error('Mailformed response');
         }
-        let resultTuple = res.data.resultRaw ? parseTuple(Cell.fromBoc(Buffer.from(res.data.resultRaw, 'base64'))[0]) : [];
+        let resultTuple = runMethod.data.resultRaw ? parseTuple(Cell.fromBoc(Buffer.from(runMethod.data.resultRaw, 'base64'))[0]) : [];
         return {
-            exitCode: res.data.exitCode,
+            exitCode: runMethod.data.exitCode,
             result: resultTuple,
-            resultRaw: res.data.resultRaw,
-            block: res.data.block,
-            shardBlock: res.data.shardBlock,
+            resultRaw: runMethod.data.resultRaw,
+            block: runMethod.data.block,
+            shardBlock: runMethod.data.shardBlock,
             reader: new TupleReader(resultTuple),
         };
     }
@@ -247,7 +233,8 @@ export class TonClient4 {
      */
     async sendMessage(message: Buffer) {
         let res = await axios.post(this.#endpoint + '/send', { boc: message.toString('base64') }, { adapter: this.#adapter, timeout: this.#timeout });
-        if (!sendCodec.is(res.data)) {
+        let send = sendCodec.safeParse(res.data);
+        if (!send.success) {
             throw Error('Mailformed response');
         }
         return { status: res.data.status };
@@ -432,37 +419,37 @@ function createProvider(client: TonClient4, block: number | null, address: Addre
 // Codecs
 //
 
-const lastBlockCodec = t.type({
-    last: t.type({
-        seqno: t.number,
-        shard: t.string,
-        workchain: t.number,
-        fileHash: t.string,
-        rootHash: t.string
+const lastBlockCodec = z.object({
+    last: z.object({
+        seqno: z.number(),
+        shard: z.string(),
+        workchain: z.number(),
+        fileHash: z.string(),
+        rootHash: z.string()
     }),
-    init: t.type({
-        fileHash: t.string,
-        rootHash: t.string
+    init: z.object({
+        fileHash: z.string(),
+        rootHash: z.string()
     }),
-    stateRootHash: t.string,
-    now: t.number
+    stateRootHash: z.string(),
+    now: z.number()
 });
 
-const blockCodec = t.union([t.type({
-    exist: t.literal(false)
-}), t.type({
-    exist: t.literal(true),
-    block: t.type({
-        shards: t.array(t.type({
-            workchain: t.number,
-            seqno: t.number,
-            shard: t.string,
-            rootHash: t.string,
-            fileHash: t.string,
-            transactions: t.array(t.type({
-                account: t.string,
-                hash: t.string,
-                lt: t.string
+const blockCodec = z.union([z.object({
+    exist: z.literal(false)
+}), z.object({
+    exist: z.literal(true),
+    block: z.object({
+        shards: z.array(z.object({
+            workchain: z.number(),
+            seqno: z.number(),
+            shard: z.string(),
+            rootHash: z.string(),
+            fileHash: z.string(),
+            transactions: z.array(z.object({
+                account: z.string(),
+                hash: z.string(),
+                lt: z.string()
             }))
         }))
     })
@@ -470,127 +457,116 @@ const blockCodec = t.union([t.type({
 
 // {"lastPaid":1653099243,"duePayment":null,"used":{"bits":119,"cells":1,"publicCells":0}}
 
-const storageStatCodec = t.type({
-    lastPaid: t.number,
-    duePayment: t.union([t.null, t.string]),
-    used: t.type({
-        bits: t.number,
-        cells: t.number,
-        publicCells: t.number
+const storageStatCodec = z.object({
+    lastPaid: z.number(),
+    duePayment: z.union([z.null(), z.string()]),
+    used: z.object({
+        bits: z.number(),
+        cells: z.number(),
+        publicCells: z.number()
     })
 });
 
-const accountCodec = t.type({
-    account: t.type({
-        state: t.union([
-            t.type({ type: t.literal('uninit') }),
-            t.type({ type: t.literal('active'), code: t.union([t.string, t.null]), data: t.union([t.string, t.null]) }),
-            t.type({ type: t.literal('frozen'), stateHash: t.string })
+const accountCodec = z.object({
+    account: z.object({
+        state: z.union([
+            z.object({ type: z.literal('uninit') }),
+            z.object({ type: z.literal('active'), code: z.union([z.string(), z.null()]), data: z.union([z.string(), z.null()]) }),
+            z.object({ type: z.literal('frozen'), stateHash: z.string() })
         ]),
-        balance: t.type({
-            coins: t.string
+        balance: z.object({
+            coins: z.string()
         }),
-        last: t.union([
-            t.null,
-            t.type({
-                lt: t.string,
-                hash: t.string
+        last: z.union([
+            z.null(),
+            z.object({
+                lt: z.string(),
+                hash: z.string()
             })
         ]),
-        storageStat: t.union([t.null, storageStatCodec])
+        storageStat: z.union([z.null(), storageStatCodec])
     }),
-    block: t.type({
-        workchain: t.number,
-        seqno: t.number,
-        shard: t.string,
-        rootHash: t.string,
-        fileHash: t.string
+    block: z.object({
+        workchain: z.number(),
+        seqno: z.number(),
+        shard: z.string(),
+        rootHash: z.string(),
+        fileHash: z.string()
     })
 });
 
-const accountLiteCodec = t.type({
-    account: t.type({
-        state: t.union([
-            t.type({ type: t.literal('uninit') }),
-            t.type({ type: t.literal('active'), codeHash: t.string, dataHash: t.string }),
-            t.type({ type: t.literal('frozen'), stateHash: t.string })
+const accountLiteCodec = z.object({
+    account: z.object({
+        state: z.union([
+            z.object({ type: z.literal('uninit') }),
+            z.object({ type: z.literal('active'), codeHash: z.string(), dataHash: z.string() }),
+            z.object({ type: z.literal('frozen'), stateHash: z.string() })
         ]),
-        balance: t.type({
-            coins: t.string
+        balance: z.object({
+            coins: z.string()
         }),
-        last: t.union([
-            t.null,
-            t.type({
-                lt: t.string,
-                hash: t.string
+        last: z.union([
+            z.null(),
+            z.object({
+                lt: z.string(),
+                hash: z.string()
             })
         ]),
-        storageStat: t.union([t.null, storageStatCodec])
+        storageStat: z.union([z.null(), storageStatCodec])
     })
 });
 
-const changedCodec = t.type({
-    changed: t.boolean,
-    block: t.type({
-        workchain: t.number,
-        seqno: t.number,
-        shard: t.string,
-        rootHash: t.string,
-        fileHash: t.string
+const changedCodec = z.object({
+    changed: z.boolean(),
+    block: z.object({
+        workchain: z.number(),
+        seqno: z.number(),
+        shard: z.string(),
+        rootHash: z.string(),
+        fileHash: z.string()
     })
 });
 
-const runMethodCodec = t.type({
-    exitCode: t.number,
-    resultRaw: t.union([t.string, t.null]),
-    block: t.type({
-        workchain: t.number,
-        seqno: t.number,
-        shard: t.string,
-        rootHash: t.string,
-        fileHash: t.string
+const runMethodCodec = z.object({
+    exitCode: z.number(),
+    resultRaw: z.union([z.string(), z.null()]),
+    block: z.object({
+        workchain: z.number(),
+        seqno: z.number(),
+        shard: z.string(),
+        rootHash: z.string(),
+        fileHash: z.string()
     }),
-    shardBlock: t.type({
-        workchain: t.number,
-        seqno: t.number,
-        shard: t.string,
-        rootHash: t.string,
-        fileHash: t.string
+    shardBlock: z.object({
+        workchain: z.number(),
+        seqno: z.number(),
+        shard: z.string(),
+        rootHash: z.string(),
+        fileHash: z.string()
     })
 });
 
-const configCodec = t.type({
-    config: t.type({
-        cell: t.string,
-        address: t.string,
-        globalBalance: t.type({
-            coins: t.string
+const configCodec = z.object({
+    config: z.object({
+        cell: z.string(),
+        address: z.string(),
+        globalBalance: z.object({
+            coins: z.string()
         })
     })
 });
 
-const sendCodec = t.type({
-    status: t.number
+const sendCodec = z.object({
+    status: z.number()
 });
 
-const transactionsCodec = t.type({
-    blocks: t.array(t.type({
-        workchain: t.number,
-        seqno: t.number,
-        shard: t.string,
-        rootHash: t.string,
-        fileHash: t.string
+const transactionsCodec = z.object({
+    blocks: z.array(z.object({
+        workchain: z.number(),
+        seqno: z.number(),
+        shard: z.string(),
+        rootHash: z.string(),
+        fileHash: z.string()
     })),
-    boc: t.string
+    boc: z.string()
 });
-
-const transactionCodec = t.type({
-    block: t.type({
-        workchain: t.number,
-        seqno: t.number,
-        shard: t.string,
-        rootHash: t.string,
-    }),
-    boc: t.string,
-    proof: t.string
-})

@@ -5,142 +5,139 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-
-import * as t from 'io-ts';
-import { isRight } from 'fp-ts/lib/Either';
-import reporter from 'io-ts-reporters';
 import { InMemoryCache, TonCache } from './TonCache';
 import DataLoader from 'dataloader';
 import axios, { AxiosAdapter } from 'axios';
 import { Address, Cell, TupleItem } from 'ton-core';
+import { z } from 'zod';
 
 const version = require('../../../package.json').version as string;
 
-const blockIdExt = t.type({
-    '@type': t.literal('ton.blockIdExt'),
-    workchain: t.number,
-    shard: t.string,
-    seqno: t.number,
-    root_hash: t.string,
-    file_hash: t.string
+const blockIdExt = z.object({
+    '@type': z.literal('ton.blockIdExt'),
+    workchain: z.number(),
+    shard: z.string(),
+    seqno: z.number(),
+    root_hash: z.string(),
+    file_hash: z.string()
 });
 
-const addressInformation = t.type({
-    balance: t.union([t.number, t.string]),
-    state: t.union([t.literal('active'), t.literal('uninitialized'), t.literal('frozen')]),
-    data: t.string,
-    code: t.string,
-    last_transaction_id: t.type({
-        '@type': t.literal('internal.transactionId'),
-        lt: t.string,
-        hash: t.string
+const addressInformation = z.object({
+    balance: z.union([z.number(), z.string()]),
+    state: z.union([z.literal('active'), z.literal('uninitialized'), z.literal('frozen')]),
+    data: z.string(),
+    code: z.string(),
+    last_transaction_id: z.object({
+        '@type': z.literal('internal.transactionId'),
+        lt: z.string(),
+        hash: z.string()
     }),
     block_id: blockIdExt,
-    sync_utime: t.number
+    sync_utime: z.number()
 });
 
-const bocResponse = t.type({
-    '@type': t.literal('ok')
+const bocResponse = z.object({
+    '@type': z.literal('ok')
 });
 
-const feeResponse = t.type({
-    '@type': t.literal('query.fees'),
-    source_fees: t.type({
-        '@type': t.literal('fees'),
-        in_fwd_fee: t.number,
-        storage_fee: t.number,
-        gas_fee: t.number,
-        fwd_fee: t.number
+const feeResponse = z.object({
+    '@type': z.literal('query.fees'),
+    source_fees: z.object({
+        '@type': z.literal('fees'),
+        in_fwd_fee: z.number(),
+        storage_fee: z.number(),
+        gas_fee: z.number(),
+        fwd_fee: z.number()
     })
 });
 
-const callGetMethod = t.type({
-    gas_used: t.number,
-    exit_code: t.number,
-    stack: t.array(t.unknown)
+const callGetMethod = z.object({
+    gas_used: z.number(),
+    exit_code: z.number(),
+    stack: z.array(z.unknown())
 });
 
-const messageData = t.union([
-    t.type({
-        '@type': t.literal('msg.dataRaw'),
-        'body': t.string
+const messageData = z.union([
+    z.object({
+        '@type': z.literal('msg.dataRaw'),
+        'body': z.string()
     }),
-    t.type({
-        '@type': t.literal('msg.dataText'),
-        'text': t.string
+    z.object({
+        '@type': z.literal('msg.dataText'),
+        'text': z.string()
     }),
-    t.type({
-        '@type': t.literal('msg.dataDecryptedText'),
-        'text': t.string
+    z.object({
+        '@type': z.literal('msg.dataDecryptedText'),
+        'text': z.string()
     }),
-    t.type({
-        '@type': t.literal('msg.dataEncryptedText'),
-        'text': t.string
+    z.object({
+        '@type': z.literal('msg.dataEncryptedText'),
+        'text': z.string()
     })
 ]);
 
-const message = t.type({
-    source: t.string,
-    destination: t.string,
-    value: t.string,
-    fwd_fee: t.string,
-    ihr_fee: t.string,
-    created_lt: t.string,
-    body_hash: t.string,
+const message = z.object({
+    source: z.string(),
+    destination: z.string(),
+    value: z.string(),
+    fwd_fee: z.string(),
+    ihr_fee: z.string(),
+    created_lt: z.string(),
+    body_hash: z.string(),
     msg_data: messageData
 });
 
-const transaction = t.type({
-    data: t.string,
-    utime: t.number,
-    transaction_id: t.type({
-        lt: t.string,
-        hash: t.string
+const transaction = z.object({
+    data: z.string(),
+    utime: z.number(),
+    transaction_id: z.object({
+        lt: z.string(),
+        hash: z.string()
     }),
-    fee: t.string,
-    storage_fee: t.string,
-    other_fee: t.string,
-    in_msg: t.union([t.undefined, message]),
-    out_msgs: t.array(message)
+    fee: z.string(),
+    storage_fee: z.string(),
+    other_fee: z.string(),
+    in_msg: z.union([z.undefined(), message]),
+    out_msgs: z.array(message)
 });
 
-const getTransactions = t.array(transaction);
+const getTransactions = z.array(transaction);
 
-const getMasterchain = t.type({
-    state_root_hash: t.string,
+const getMasterchain = z.object({
+    state_root_hash: z.string(),
     last: blockIdExt,
     init: blockIdExt
 });
 
-const getShards = t.type({
-    shards: t.array(blockIdExt)
+const getShards = z.object({
+    shards: z.array(blockIdExt)
 });
 
-const blockShortTxt = t.type({
-    '@type': t.literal('blocks.shortTxId'),
-    mode: t.number,
-    account: t.string,
-    lt: t.string,
-    hash: t.string
+const blockShortTxt = z.object({
+    '@type': z.literal('blocks.shortTxId'),
+    mode: z.number(),
+    account: z.string(),
+    lt: z.string(),
+    hash: z.string()
 })
 
-const getBlockTransactions = t.type({
+const getBlockTransactions = z.object({
     id: blockIdExt,
-    req_count: t.number,
-    incomplete: t.boolean,
-    transactions: t.array(blockShortTxt)
+    req_count: z.number(),
+    incomplete: z.boolean(),
+    transactions: z.array(blockShortTxt)
 });
 
-export type HTTPTransaction = t.TypeOf<typeof getTransactions>[number];
-export type HTTPMessage = t.TypeOf<typeof message>;
+export type HTTPTransaction = z.TypeOf<typeof getTransactions>[number];
+export type HTTPMessage = z.TypeOf<typeof message>;
 
 class TypedCache<K, V> {
     readonly namespace: string;
     readonly cache: TonCache;
-    readonly codec: t.Type<V>;
+    readonly codec: z.ZodType<V>;
     readonly keyEncoder: (src: K) => string;
 
-    constructor(namespace: string, cache: TonCache, codec: t.Type<V>, keyEncoder: (src: K) => string) {
+    constructor(namespace: string, cache: TonCache, codec: z.ZodType<V>, keyEncoder: (src: K) => string) {
         this.namespace = namespace;
         this.cache = cache;
         this.codec = codec;
@@ -150,9 +147,9 @@ class TypedCache<K, V> {
     async get(key: K) {
         let ex = await this.cache.get(this.namespace, this.keyEncoder(key));
         if (ex) {
-            let decoded = this.codec.decode(JSON.parse(ex));
-            if (isRight(decoded)) {
-                return decoded.right;
+            let decoded = this.codec.safeParse(JSON.parse(ex));
+            if (decoded.success) {
+                return decoded.data;
             }
         }
         return null;
@@ -194,10 +191,10 @@ export class HttpApi {
     readonly cache: TonCache;
 
     private readonly parameters: HttpApiResolvedParameters;
-    private shardCache: TypedCache<number, t.TypeOf<typeof blockIdExt>[]>;
-    private shardLoader: DataLoader<number, t.TypeOf<typeof blockIdExt>[]>;
-    private shardTransactionsCache: TypedCache<{ workchain: number, shard: string, seqno: number }, t.TypeOf<typeof getBlockTransactions>>;
-    private shardTransactionsLoader: DataLoader<{ workchain: number, shard: string, seqno: number }, t.TypeOf<typeof getBlockTransactions>, string>;
+    private shardCache: TypedCache<number, z.TypeOf<typeof blockIdExt>[]>;
+    private shardLoader: DataLoader<number, z.TypeOf<typeof blockIdExt>[]>;
+    private shardTransactionsCache: TypedCache<{ workchain: number, shard: string, seqno: number }, z.TypeOf<typeof getBlockTransactions>>;
+    private shardTransactionsLoader: DataLoader<{ workchain: number, shard: string, seqno: number }, z.TypeOf<typeof getBlockTransactions>, string>;
 
     constructor(endpoint: string, parameters?: HttpApiParameters) {
         this.endpoint = endpoint;
@@ -209,7 +206,7 @@ export class HttpApi {
         }
 
         // Shard
-        this.shardCache = new TypedCache('ton-shard', this.cache, t.array(blockIdExt), (src) => src + '');
+        this.shardCache = new TypedCache('ton-shard', this.cache, z.array(blockIdExt), (src) => src + '');
         this.shardLoader = new DataLoader(async (src) => {
             return await Promise.all(src.map(async (v) => {
                 const cached = await this.shardCache.get(v);
@@ -318,7 +315,7 @@ export class HttpApi {
         }, feeResponse);
     }
 
-    private async doCall<T>(method: string, body: any, codec: t.Type<T>) {
+    private async doCall<T>(method: string, body: any, codec: z.ZodType<T>) {
         let headers: Record<string, any> = {
             'Content-Type': 'application/json',
             'X-Ton-Client-Version': version,
@@ -338,11 +335,11 @@ export class HttpApi {
         if (res.status !== 200 || !res.data.ok) {
             throw Error('Received error: ' + JSON.stringify(res.data));
         }
-        let decoded = codec.decode(res.data.result);
-        if (isRight(decoded)) {
-            return decoded.right;
+        let decoded = codec.safeParse(res.data.result);
+        if (decoded.success) {
+            return decoded.data;
         } else {
-            throw Error('Malformed response: ' + reporter.report(decoded).join(', '));
+            throw Error('Malformed response: ' + decoded.error.format()._errors.join(', '));
         }
     }
 }
