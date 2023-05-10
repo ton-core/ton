@@ -3667,13 +3667,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fp-ts@npm:^2.11.1":
-  version: 2.11.1
-  resolution: "fp-ts@npm:2.11.1"
-  checksum: 3c13ef05919de51466039ad01d1002093adb38a239c3d096271aad1433f0d7b3ba753b27eafdbd0d1139971f48f1d4044d99ec2b6c452b8d2b17916b9faf98a2
-  languageName: node
-  linkType: hard
-
 "fs-extra@npm:^8.1.0":
   version: 8.1.0
   resolution: "fs-extra@npm:8.1.0"
@@ -4417,25 +4410,6 @@ __metadata:
   version: 1.4.0
   resolution: "interpret@npm:1.4.0"
   checksum: 2e5f51268b5941e4a17e4ef0575bc91ed0ab5f8515e3cf77486f7c14d13f3010df9c0959f37063dcc96e78d12dc6b0bb1b9e111cdfe69771f4656d2993d36155
-  languageName: node
-  linkType: hard
-
-"io-ts-reporters@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "io-ts-reporters@npm:2.0.0"
-  peerDependencies:
-    fp-ts: ^2.10.5
-    io-ts: ^2.2.16
-  checksum: fd15abdc1b88dfbd54ff3c10a8a55ccf862b5f8b7ee1642760920f0fb0808ac977ece72ed221ab9b011987cf2f880aafa83c1ced526aea4ef560c6403ac8e7e2
-  languageName: node
-  linkType: hard
-
-"io-ts@npm:^2.2.16":
-  version: 2.2.16
-  resolution: "io-ts@npm:2.2.16"
-  peerDependencies:
-    fp-ts: ^2.5.0
-  checksum: 1b5855682e413cc92cfb5c51d0bdb24c99e407ab4e67821a53078f5d8dedbc387840c5b240cb19dd5d542bbdd2e2317ece17674a674f3de561ca0f00ae765bba
   languageName: node
   linkType: hard
 
@@ -8228,9 +8202,6 @@ __metadata:
     buffer: ^6.0.3
     dataloader: ^2.0.0
     expect: ^27.1.0
-    fp-ts: ^2.11.1
-    io-ts: ^2.2.16
-    io-ts-reporters: ^2.0.0
     jest: ^27.1.0
     jest-mock: ^27.1.0
     karma: ^6.3.4
@@ -8251,8 +8222,9 @@ __metadata:
     typedoc: ^0.23.24
     typescript: ^4.4.2
     webpack: ^5.51.2
+    zod: ^3.21.4
   peerDependencies:
-    ton-core: ">=0.32.0"
+    ton-core: ">=0.48.0"
     ton-crypto: ">=3.2.0"
   languageName: unknown
   linkType: soft
@@ -9136,5 +9108,12 @@ __metadata:
   version: 3.20.6
   resolution: "zod@npm:3.20.6"
   checksum: 804b1934b8b5e2fa3750bec90043e8118b201f330b9957b8b768389a971acadf812d2060cf62921086512dab4af691d10490acb03333da58fc485c0791893c89
+  languageName: node
+  linkType: hard
+
+"zod@npm:^3.21.4":
+  version: 3.21.4
+  resolution: "zod@npm:3.21.4"
+  checksum: f185ba87342ff16f7a06686767c2b2a7af41110c7edf7c1974095d8db7a73792696bcb4a00853de0d2edeb34a5b2ea6a55871bc864227dace682a0a28de33e1f
   languageName: node
   linkType: hard
