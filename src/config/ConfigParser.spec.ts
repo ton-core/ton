@@ -8,12 +8,30 @@
 
 import { createTestClient4 } from "../utils/createTestClient4";
 import { Address } from "ton-core";
-import { configParse17, configParse18, configParseValidatorSet, configParseBridge, configParse12, parseFullConfig, loadConfigParamById, loadConfigParamsAsSlice } from "./ConfigParser";
+import { configParse5, configParse13, configParse17, configParse18, configParseValidatorSet, configParseBridge, configParse12, parseFullConfig, loadConfigParamById, loadConfigParamsAsSlice } from "./ConfigParser";
 
 const client = createTestClient4("mainnet");
 const KNOWN_BLOCK = 31091335;
 
 describe('ElectorContract4', () => {
+
+    // for some reason api returns 500 for this reques
+    // it('should return correct burning config', async () => {
+    //     const srializedConfigsCell = (await client.getConfig(KNOWN_BLOCK, [13])).config.cell;
+    //     const config13 = configParse13(loadConfigParamById(srializedConfigsCell, 13).beginParse());
+
+    //     console.log(config13);
+
+    // });
+
+    it('should return correct complaint pricing', async () => {
+        const srializedConfigsCell = (await client.getConfig(KNOWN_BLOCK, [5])).config.cell;
+        const config5 = configParse5(loadConfigParamById(srializedConfigsCell, 5).beginParse());
+
+        expect(config5!.blackholeAddr!.equals(Address.parse('Ef___________________________________________7Sg'))).toBe(true);
+        expect(config5!.feeBurnNominator).toEqual(1);
+        expect(config5!.feeBurnDenominator).toEqual(2);
+    });
 
     it('should return correct workckain description', async () => {
         const srializedConfigsCell = (await client.getConfig(KNOWN_BLOCK, [12])).config.cell;

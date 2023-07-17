@@ -98,6 +98,42 @@ export function configParseMasterAddressRequired(slice: Slice | null | undefined
     return configParseMasterAddress(slice)!;
 }
 
+export function configParse5(slice: Slice | null | undefined) {
+    if (!slice) {
+        throw Error('Invalid config');
+    }
+    const magic = slice.loadUint(8);
+    if (magic === 0x01) {
+        const blackholeAddr = slice.loadBit() ? new Address(-1, slice.loadBuffer(32)): null;
+        const feeBurnNominator = slice.loadUint(32);
+        const feeBurnDenominator = slice.loadUint(32);
+        return {
+            blackholeAddr,
+            feeBurnNominator,
+            feeBurnDenominator
+        };
+    }
+    throw new Error('Invalid config');
+}
+
+export function configParse13(slice: Slice | null | undefined) {
+    if (!slice) {
+        throw Error('Invalid config');
+    }
+    const magic = slice.loadUint(8);
+    if (magic === 0x1a) {
+        const deposit = slice.loadCoins();
+        const bitPrice = slice.loadCoins();
+        const cellPrice = slice.loadCoins();
+        return {
+            deposit,
+            bitPrice,
+            cellPrice
+        };
+    }
+    throw new Error('Invalid config');
+}
+
 export function configParse15(slice: Slice | null | undefined) {
     if (!slice) {
         throw Error('Invalid config');
@@ -673,6 +709,7 @@ export function parseFullConfig(configs: Map<number, Slice>) {
         minterAddress: configParseMasterAddress(configs.get(2)),
         feeCollectorAddress: configParseMasterAddress(configs.get(3)),
         dnsRootAddress: configParseMasterAddress(configs.get(4)),
+        burningConfig: configParse5(configs.get(5)),
         globalVersion: configParse8(configs.get(8)),
         workchains: configParse12(configs.get(12)),
         voting: parseVotingSetup(configs.get(11)),
@@ -701,7 +738,7 @@ export function parseFullConfig(configs: Map<number, Slice>) {
         validatorsPunish: configParse40(configs.get(40)),
         bridges: {
             ethereum: configParseBridge(configs.get(71)),
-            // binance: configParseBridge(configs.get(72)),
+            binance: configParseBridge(configs.get(72)),
             polygon: configParseBridge(configs.get(73))
         },
         catchain: configParse28(configs.get(28)),
@@ -710,8 +747,6 @@ export function parseFullConfig(configs: Map<number, Slice>) {
         // TODO: to_mint:ExtraCurrencyCollection = ConfigParam 7
         // TODO: mandatory_params:(Hashmap 32 True) = ConfigParam 9
         // TODO: critical_params:(Hashmap 32 True) = ConfigParam 10
-        // TODO: ConfigVotingSetup = ConfigParam 11
-        // TODO: ComplaintPricing = ConfigParam 13
         // TODO: BlockCreateFees = ConfigParam 14
     };
 }
