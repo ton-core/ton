@@ -57,3 +57,18 @@ export { MultisigWallet } from './multisig/MultisigWallet'
 //
 
 export { ElectorContract4 } from './elector/ElectorContract4'
+
+//
+// Config
+//
+
+export { GasLimitsPrices, StoragePrices, MsgPrices, WorkchainDescriptor,
+    configParse5, configParse8, configParse12, configParse13,
+    configParse15, configParse16, configParse17, configParse18,
+    configParse28, configParse29, configParse40,
+    configParseBridge, configParseGasLimitsPrices, configParseMasterAddress,
+    configParseMasterAddressRequired, configParseMsgPrices,
+    configParseValidatorSet, configParseWorkchainDescriptor,
+    parseBridge, parseProposalSetup, parseValidatorSet, parseVotingSetup,
+    parseFullConfig,
+    loadConfigParamById, loadConfigParamsAsSlice } from './config/ConfigParser'
