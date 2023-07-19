@@ -13,6 +13,7 @@ import { ElectorContract4 } from "./ElectorContract4";
 let client = createTestClient4("mainnet");
 const ec = new ElectorContract4(client);
 const KNOWN_BLOCK = 31091335;
+const BLOCK_WITH_TWO_PAST_ELECTIONS_ENTRIES = 30910280;
 
 
 describe('ElectorContract4', () => {
@@ -22,19 +23,29 @@ describe('ElectorContract4', () => {
     });
 
     it('should return correct past elections records', async () => {
-        const pastElections = await ec.getPastElections(KNOWN_BLOCK);
-        
-        expect(pastElections[0].id).toEqual(1689210632);
-        expect(pastElections[0].unfreezeAt).toEqual(1689308936);
-        expect(pastElections[0].stakeHeld).toEqual(32768);
-        expect(pastElections[0].totalStake).toEqual(225866876807023064n);
-        expect(pastElections[0].bonuses).toEqual(36694814715610n);
-        const knownFrozenValue = pastElections[0].frozen.get('403869299230672796703006364351191686950742896222119560255724029012167972875');
-        expect(knownFrozenValue!["address"].equals(Address.parse('Ef9-ttkkYiPuruCZp58Ip1Y87ua_868G_6VYiRPxAZF-gJzd'))).toBe(true);
-        expect(knownFrozenValue!["weight"]).toEqual(3881868472023786n);
-        expect(knownFrozenValue!["stake"]).toEqual(760490202020000n);
+        const pastElections = await ec.getPastElections(BLOCK_WITH_TWO_PAST_ELECTIONS_ENTRIES);
 
+        expect(pastElections[0].id).toEqual(1688555272);
+        expect(pastElections[0].unfreezeAt).toEqual(1688653586);
+        expect(pastElections[0].stakeHeld).toEqual(32768);
+        expect(pastElections[0].totalStake).toEqual(223347831720943192n);
+        expect(pastElections[0].bonuses).toEqual(53066684997045n);
+        const knownFrozenValue0 = pastElections[0].frozen.get('12697811587540651918746850816771244166804229135431506663207437025351429985');
+        expect(knownFrozenValue0!["address"].equals(Address.parse('Ef-vmU4VjsKZhFfEvB-N_fXY8zcyH4ih6n9DcMtIAsy3YezN'))).toBe(true);
+        expect(knownFrozenValue0!["weight"]).toEqual(4395984999565357n);
+        expect(knownFrozenValue0!["stake"]).toEqual(851605000000000n);
+
+        expect(pastElections[1].id).toEqual(1688620808);
+        expect(pastElections[1].unfreezeAt).toEqual(1688719112);
+        expect(pastElections[1].stakeHeld).toEqual(32768);
+        expect(pastElections[1].totalStake).toEqual(223158712619365653n);
+        expect(pastElections[1].bonuses).toEqual(15934890731182n);
+        const knownFrozenValue1 = pastElections[1].frozen.get('216824161582481026645351194108767366817492989435791853445305829924424560264');
+        expect(knownFrozenValue1!["address"].equals(Address.parse('<Ef_9j3g_jktlWpkCvQaEZ0qZ8qJH_fvyehUEAh0h5hZ1hCD6'))).toBe(true);
+        expect(knownFrozenValue1!["weight"]).toEqual(2114850227378530n);
+        expect(knownFrozenValue1!["stake"]).toEqual(409348990576338n);
     });
+
 
     it('should return correct election entities', async () => {
         const electionEntities = await ec.getElectionEntities(KNOWN_BLOCK);

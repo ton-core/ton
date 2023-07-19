@@ -240,18 +240,19 @@ export class ElectorContract4 implements Contract {
             throw Error('Exit code: ' + res.exitCode);
         }
         let tuple = new TupleReader(res.result);
-        tuple = tuple.readTuple();
-        let count = tuple.remaining - 1;
+        const electionsRaw = new TupleReader(tuple.readCons());
+
         const elections: { id: number, unfreezeAt: number, stakeHeld: number, totalStake: bigint, bonuses: bigint, frozen: Map<string, { address: Address, weight: bigint, stake: bigint }> }[] = [];
-        for (let i = 0; i < count; i++) {
-            const v = tuple.readTuple();
-            const id = v.readNumber();
-            const unfreezeAt = v.readNumber();
-            const stakeHeld = v.readNumber();
-            v.pop(); // Ignore vset_hash
-            const frozenDict = v.readCell();
-            const totalStake = v.readBigNumber();
-            const bonuses = v.readBigNumber();
+
+        while (electionsRaw.remaining > 0) {
+            const electionsEntry = electionsRaw.readTuple();
+            const id = electionsEntry.readNumber();
+            const unfreezeAt = electionsEntry.readNumber();
+            const stakeHeld = electionsEntry.readNumber();
+            electionsEntry.pop(); // Ignore vset_hash
+            const frozenDict = electionsEntry.readCell();
+            const totalStake = electionsEntry.readBigNumber();
+            const bonuses = electionsEntry.readBigNumber();
             let frozen: Map<string, { address: Address, weight: bigint, stake: bigint }> = new Map();
             const frozenData = frozenDict.beginParse().loadDictDirect(
                 Dictionary.Keys.Buffer(32),
