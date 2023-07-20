@@ -219,16 +219,16 @@ export class ElectorContract4 implements Contract {
             throw Error('Exit code: ' + res.exitCode);
         }
         let tuple = new TupleReader(res.result);
-        tuple = tuple.readTuple();
-        let count = tuple.remaining - 1;
+        const electionsListRaw = new TupleReader(tuple.readCons());
 
         const elections: { id: number, unfreezeAt: number, stakeHeld: number }[] = [];
-        for (let i = 0; i < count; i++) {
-            const v = tuple.readTuple();
-            const id = v.readNumber();
-            const unfreezeAt = v.readNumber();
-            v.pop(); // Ignore
-            const stakeHeld = v.readNumber();
+
+        while (electionsListRaw.remaining > 0) {
+            const electionsListEntry = electionsListRaw.readTuple();
+            const id = electionsListEntry.readNumber();
+            const unfreezeAt = electionsListEntry.readNumber();
+            electionsListEntry.pop(); // Ignore vset_hash
+            const stakeHeld = electionsListEntry.readNumber();
             elections.push({ id, unfreezeAt, stakeHeld });
         }
         return elections;
@@ -304,6 +304,35 @@ export class ElectorContract4 implements Contract {
         }
         return { minStake, allStakes, endElectionsTime, startWorkTime, entities };
     }
+
+    // possible code for fetching data via get method if it would not return -14 exit code
+    // async getElectionEntities(block: number) {
+
+    //     const res = await this.client.runMethod(block, this.address, 'participant_list_extended');
+    //     if (res.exitCode !== 0 && res.exitCode !== 1) {
+    //         throw Error('Exit code: ' + res.exitCode);
+    //     }
+
+    //     let tuple = new TupleReader(res.result);
+    //     const startWorkTime = tuple.readNumber();
+    //     const endElectionsTime = tuple.readNumber();
+    //     const minStake = tuple.readBigNumber();
+    //     const allStakes = tuple.readBigNumber();
+    //     let entriesTuple = tuple.readTuple();
+    //     const entriesRaw = new TupleReader(entriesTuple.readCons());
+    //     let entities: { pubkey: Buffer, stake: bigint, address: Address, adnl: Buffer }[] = [];
+    //     while (entriesRaw.remaining > 0) {
+    //         const electionsEntry = entriesRaw.readTuple();
+    //         const pubkey = electionsEntry.readBuffer();
+    //         const stake = electionsEntry.readBigNumber();
+    //         const address = electionsEntry.readAddress();
+    //         const adnl = electionsEntry.readBuffer();
+    //         entities.push({ pubkey, stake, address, adnl });
+    //     }
+
+
+    //     return { minStake, allStakes, endElectionsTime, startWorkTime, entities };
+    // }
 
     async getActiveElectionId(block: number) {
         const res = await this.client.runMethod(block, this.address, 'active_election_id');

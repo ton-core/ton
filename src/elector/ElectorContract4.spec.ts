@@ -19,7 +19,10 @@ const BLOCK_WITH_TWO_PAST_ELECTIONS_ENTRIES = 30910280;
 describe('ElectorContract4', () => {
     
     it('should return correct past elections list', async () => {
-        expect(await ec.getPastElectionsList(KNOWN_BLOCK)).toEqual([ { id: 1689210632, unfreezeAt: 1689308936, stakeHeld: 32768 } ]);
+        expect(await ec.getPastElectionsList(BLOCK_WITH_TWO_PAST_ELECTIONS_ENTRIES)).toEqual([
+            { id: 1688555272, unfreezeAt: 1688653586, stakeHeld: 32768 },
+            { id: 1688620808, unfreezeAt: 1688719112, stakeHeld: 32768 }
+        ]);
     });
 
     it('should return correct past elections records', async () => {
@@ -45,7 +48,6 @@ describe('ElectorContract4', () => {
         expect(knownFrozenValue1!["weight"]).toEqual(2114850227378530n);
         expect(knownFrozenValue1!["stake"]).toEqual(409348990576338n);
     });
-
 
     it('should return correct election entities', async () => {
         const electionEntities = await ec.getElectionEntities(KNOWN_BLOCK);
