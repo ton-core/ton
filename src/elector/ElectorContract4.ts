@@ -1,4 +1,4 @@
-import { Address, ADNLAddress, BitBuilder, Cell, Contract, TupleReader, Dictionary, DictionaryValue, Slice, Builder } from "ton-core";
+import { Address, ADNLAddress, BitBuilder, Cell, Contract, TupleReader, TupleBuilder, Dictionary, DictionaryValue, Slice, Builder } from "ton-core";
 import { TonClient4 } from '../client/TonClient4';
 
 
@@ -123,75 +123,6 @@ export class ElectorContract4 implements Contract {
         return res.build();
     }
 
-    // /**
-    //  * Parsing complaints
-    //  * @param src source object
-    //  */
-    // static parseComplaints(src: any[]) {
-    //     const data = src[0][1].elements;
-    //     const results: {
-    //         id: bigint,
-    //         publicKey: Buffer,
-    //         createdAt: number,
-    //         severity: number,
-    //         paid: bigint,
-    //         suggestedFine: bigint,
-    //         suggestedFinePart: bigint,
-    //         rewardAddress: Address,
-    //         votes: number[],
-    //         remainingWeight: bigint,
-    //         vsetId: bigint
-    //     }[] = [];
-    //     for (let record of data) {
-    //         const elements = record.tuple.elements;
-    //         const id = BigInt(elements[0].number.number as string);
-    //         const complaint = elements[1].tuple.elements[0].tuple.elements;
-    //         const votersList = elements[1].tuple.elements[1].list.elements;
-    //         const vsetIdRaw = elements[1].tuple.elements[2];
-    //         const weightRemaining = elements[1].tuple.elements[3];
-
-    //         let publicKeyRaw = new BN(complaint[0].number.number, 10).toString('hex');
-    //         while (publicKeyRaw.length < 64) {
-    //             publicKeyRaw = '0' + publicKeyRaw;
-    //         }
-    //         const publicKey = Buffer.from(publicKeyRaw, 'hex');
-    //         const description = Cell.fromBoc(Buffer.from(complaint[1].cell.bytes, 'base64'))[0];
-    //         const createdAt = parseInt(complaint[2].number.number, 10);
-    //         const severity = parseInt(complaint[3].number.number, 10);
-    //         let rewardAddressRaw = new BN(complaint[4].number.number, 10).toString('hex');
-    //         while (rewardAddressRaw.length < 64) {
-    //             rewardAddressRaw = '0' + rewardAddressRaw;
-    //         }
-    //         const rewardAddress = new Address(-1, Buffer.from(rewardAddressRaw, 'hex'));
-    //         const paid = BigInt(complaint[5].number.number);
-    //         const suggestedFine = BigInt(complaint[6].number.number);
-    //         const suggestedFinePart = BigInt(complaint[7].number.number);
-
-    //         const votes: number[] = [];
-    //         for (let v of votersList) {
-    //             votes.push(parseInt(v.number.number, 10));
-    //         }
-
-    //         const remainingWeight = BigInt(weightRemaining.number.number);
-    //         const vsetId = BigInt(vsetIdRaw.number.number);
-
-    //         results.push({
-    //             id,
-    //             publicKey,
-    //             createdAt,
-    //             severity,
-    //             paid,
-    //             suggestedFine,
-    //             suggestedFinePart,
-    //             rewardAddress,
-    //             votes,
-    //             remainingWeight,
-    //             vsetId
-    //         });
-    //     }
-    //     return results;
-    // }
-
     // Please note that we are NOT loading address from config to avoid mistake and send validator money to a wrong contract
     readonly address: Address = Address.parseRaw('-1:3333333333333333333333333333333333333333333333333333333333333333');
     //readonly source: ContractSource = new UnknownContractSource('org.ton.elector', -1, 'Elector Contract');
@@ -305,7 +236,7 @@ export class ElectorContract4 implements Contract {
         return { minStake, allStakes, endElectionsTime, startWorkTime, entities };
     }
 
-    // possible code for fetching data via get method if it would not return -14 exit code
+    // possible code for fetching data via get method if it is possible to set gas limit by request
     // async getElectionEntities(block: number) {
 
     //     const res = await this.client.runMethod(block, this.address, 'participant_list_extended');
@@ -344,8 +275,72 @@ export class ElectorContract4 implements Contract {
         return electionId > 0 ? electionId : null;
     }
 
-    // async getComplaints(block: number, electionId: number) {
-    //     let res = await this.client.callGetMethod(this.address, 'list_complaints', [['num', electionId]]);
-    //     return ElectorContract4.parseComplaints(res.stack);
-    // }
+    async getComplaints(block: number, electionId: number) {
+        const b = new TupleBuilder();
+        b.writeNumber(electionId);
+        let res = await this.client.runMethod(block, this.address, 'list_complaints', b.build());
+        if (res.exitCode !== 0 && res.exitCode !== 1) {
+            throw Error('Exit code: ' + res.exitCode);
+        }
+        (BigInt.prototype as any).toJSON = function () {
+            return this.toString();
+        };
+        let tuple = new TupleReader(res.result);
+        const complaintsRaw = new TupleReader(tuple.readCons());
+
+        const results: {
+            id: bigint,
+            publicKey: Buffer,
+            createdAt: number,
+            severity: number,
+            paid: bigint,
+            suggestedFine: bigint,
+            suggestedFinePart: bigint,
+            rewardAddress: Address,
+            votes: number[],
+            remainingWeight: bigint,
+            vsetId: bigint
+        }[] = [];
+
+        while (complaintsRaw.remaining > 0) {
+            const complaintsEntry = complaintsRaw.readTuple();
+            const id = complaintsEntry.readBigNumber();
+            const completeUnpackedComplaint = complaintsEntry.readTuple();
+            const unpackedComplaints = completeUnpackedComplaint.readTuple();
+            const publicKey = Buffer.from(unpackedComplaints.readBigNumber().toString(16), 'hex');
+            // prod_info#34 utime:uint32 mc_blk_ref:ExtBlkRef state_proof:^(MERKLE_PROOF Block)
+            // prod_proof:^(MERKLE_PROOF ShardState) = ProducerInfo;
+            // no_blk_gen from_utime:uint32 prod_info:^ProducerInfo = ComplaintDescr;
+            // no_blk_gen_diff prod_info_old:^ProducerInfo prod_info_new:^ProducerInfo = ComplaintDescr;
+            const description = unpackedComplaints.readCell();
+            const createdAt = unpackedComplaints.readNumber();
+            const severity = unpackedComplaints.readNumber();
+            const rewardAddress = new Address(-1, Buffer.from(unpackedComplaints.readBigNumber().toString(16), 'hex'));
+            const paid = unpackedComplaints.readBigNumber();
+            const suggestedFine = unpackedComplaints.readBigNumber();
+            const suggestedFinePart = unpackedComplaints.readBigNumber();
+            const votes: number[] = [];
+            const votersListRaw = new TupleReader(completeUnpackedComplaint.readCons());
+            while (votersListRaw.remaining > 0) {
+                votes.push(votersListRaw.readNumber());
+            }
+            const vsetId = completeUnpackedComplaint.readBigNumber();
+            const remainingWeight = completeUnpackedComplaint.readBigNumber();
+
+            results.push({
+                id,
+                publicKey,
+                createdAt,
+                severity,
+                paid,
+                suggestedFine,
+                suggestedFinePart,
+                rewardAddress,
+                votes,
+                remainingWeight,
+                vsetId
+            });
+        }
+        return results
+    }
 }
