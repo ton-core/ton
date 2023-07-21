@@ -282,9 +282,9 @@ export class ElectorContract4 implements Contract {
         if (res.exitCode !== 0 && res.exitCode !== 1) {
             throw Error('Exit code: ' + res.exitCode);
         }
-        (BigInt.prototype as any).toJSON = function () {
-            return this.toString();
-        };
+        if (res.result[0].type === 'null') {
+            return []
+        }
         let tuple = new TupleReader(res.result);
         const complaintsRaw = new TupleReader(tuple.readCons());
 
