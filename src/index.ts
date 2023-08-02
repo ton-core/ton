@@ -51,3 +51,9 @@ export { JettonWallet } from './jetton/JettonWallet';
 export { MultisigOrder } from './multisig/MultisigOrder';
 export { MultisigOrderBuilder } from './multisig/MultisigOrderBuilder'
 export { MultisigWallet } from './multisig/MultisigWallet'
+
+//
+// Elector
+//
+
+export { ElectorContract4 } from './elector/ElectorContract4'
