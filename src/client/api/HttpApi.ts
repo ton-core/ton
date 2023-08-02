@@ -202,7 +202,8 @@ export class HttpApi {
 
         this.parameters = {
             timeout: parameters?.timeout || 30000, // 30 seconds by default
-            apiKey: parameters?.apiKey
+            apiKey: parameters?.apiKey,
+            adapter: parameters?.adapter
         }
 
         // Shard
@@ -331,6 +332,7 @@ export class HttpApi {
         }), {
             headers,
             timeout: this.parameters.timeout,
+            adapter: this.parameters.adapter
         })
         if (res.status !== 200 || !res.data.ok) {
             throw Error('Received error: ' + JSON.stringify(res.data));
