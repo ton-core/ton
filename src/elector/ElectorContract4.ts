@@ -150,7 +150,7 @@ export class ElectorContract4 implements Contract {
             throw Error('Exit code: ' + res.exitCode);
         }
         let tuple = new TupleReader(res.result);
-        const electionsListRaw = new TupleReader(tuple.readCons());
+        const electionsListRaw = new TupleReader(tuple.readLispList());
 
         const elections: { id: number, unfreezeAt: number, stakeHeld: number }[] = [];
 
@@ -171,7 +171,7 @@ export class ElectorContract4 implements Contract {
             throw Error('Exit code: ' + res.exitCode);
         }
         let tuple = new TupleReader(res.result);
-        const electionsRaw = new TupleReader(tuple.readCons());
+        const electionsRaw = new TupleReader(tuple.readLispList());
 
         const elections: { id: number, unfreezeAt: number, stakeHeld: number, totalStake: bigint, bonuses: bigint, frozen: Map<string, { address: Address, weight: bigint, stake: bigint }> }[] = [];
 
@@ -250,7 +250,7 @@ export class ElectorContract4 implements Contract {
     //     const minStake = tuple.readBigNumber();
     //     const allStakes = tuple.readBigNumber();
     //     let entriesTuple = tuple.readTuple();
-    //     const entriesRaw = new TupleReader(entriesTuple.readCons());
+    //     const entriesRaw = new TupleReader(entriesTuple.readLispList());
     //     let entities: { pubkey: Buffer, stake: bigint, address: Address, adnl: Buffer }[] = [];
     //     while (entriesRaw.remaining > 0) {
     //         const electionsEntry = entriesRaw.readTuple();
@@ -286,7 +286,7 @@ export class ElectorContract4 implements Contract {
             return []
         }
         let tuple = new TupleReader(res.result);
-        const complaintsRaw = new TupleReader(tuple.readCons());
+        const complaintsRaw = new TupleReader(tuple.readLispList());
 
         const results: {
             id: bigint,
@@ -320,7 +320,7 @@ export class ElectorContract4 implements Contract {
             const suggestedFine = unpackedComplaints.readBigNumber();
             const suggestedFinePart = unpackedComplaints.readBigNumber();
             const votes: number[] = [];
-            const votersListRaw = new TupleReader(completeUnpackedComplaint.readCons());
+            const votersListRaw = new TupleReader(completeUnpackedComplaint.readLispList());
             while (votersListRaw.remaining > 0) {
                 votes.push(votersListRaw.readNumber());
             }
