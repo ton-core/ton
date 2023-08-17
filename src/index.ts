@@ -51,3 +51,24 @@ export { JettonWallet } from './jetton/JettonWallet';
 export { MultisigOrder } from './multisig/MultisigOrder';
 export { MultisigOrderBuilder } from './multisig/MultisigOrderBuilder'
 export { MultisigWallet } from './multisig/MultisigWallet'
+
+//
+// Elector
+//
+
+export { ElectorContract } from './elector/ElectorContract'
+
+//
+// Config
+//
+
+export { GasLimitsPrices, StoragePrices, MsgPrices, WorkchainDescriptor,
+    configParse5, configParse8, configParse12, configParse13,
+    configParse15, configParse16, configParse17, configParse18,
+    configParse28, configParse29, configParse40,
+    configParseBridge, configParseGasLimitsPrices, configParseMasterAddress,
+    configParseMasterAddressRequired, configParseMsgPrices,
+    configParseValidatorSet, configParseWorkchainDescriptor,
+    parseBridge, parseProposalSetup, parseValidatorSet, parseVotingSetup,
+    parseFullConfig,
+    loadConfigParamById, loadConfigParamsAsSlice } from './config/ConfigParser'
