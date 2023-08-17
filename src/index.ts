@@ -56,7 +56,7 @@ export { MultisigWallet } from './multisig/MultisigWallet'
 // Elector
 //
 
-export { ElectorContract4 } from './elector/ElectorContract4'
+export { ElectorContract4 } from './elector/ElectorContract'
 
 //
 // Config

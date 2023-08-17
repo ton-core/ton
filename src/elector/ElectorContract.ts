@@ -1,5 +1,4 @@
-import { Address, ADNLAddress, BitBuilder, Cell, Contract, TupleReader, TupleBuilder, Dictionary, DictionaryValue, Slice, Builder } from "ton-core";
-import { TonClient4 } from '../client/TonClient4';
+import { Address, ADNLAddress, BitBuilder, Cell, Contract, TupleReader, TupleBuilder, Dictionary, DictionaryValue, Slice, Builder, ContractProvider } from "ton-core";
 
 
 class FrozenDictValue implements DictionaryValue<{ address: Address, weight: bigint, stake: bigint }> {
@@ -29,7 +28,7 @@ class EntitiesDictValue implements DictionaryValue<{ stake: bigint, address: Add
 }
 
 
-export class ElectorContract4 implements Contract {
+export class ElectorContract implements Contract {
 
 
     /**
@@ -126,31 +125,26 @@ export class ElectorContract4 implements Contract {
     // Please note that we are NOT loading address from config to avoid mistake and send validator money to a wrong contract
     readonly address: Address = Address.parseRaw('-1:3333333333333333333333333333333333333333333333333333333333333333');
     //readonly source: ContractSource = new UnknownContractSource('org.ton.elector', -1, 'Elector Contract');
-    private readonly client: TonClient4;
 
-    constructor(client: TonClient4) {
-        this.client = client;
+    static create() {
+        return new ElectorContract();
     }
 
-    async getReturnedStake(block: number, address: Address): Promise<bigint> {
+    constructor() {
+    }
+
+
+    async getReturnedStake(provider: ContractProvider, address: Address): Promise<bigint> {
         if (address.workChain !== -1) {
             throw Error('Only masterchain addresses could have stake');
         }
-        let res = await this.client.runMethod(block, this.address, 'compute_returned_stake', [{ type: 'int', value: BigInt('0x' + address.hash.toString('hex')) }]);
-        if (res.exitCode !== 0 && res.exitCode !== 1) {
-            throw Error('Exit code: ' + res.exitCode);
-        }
-        let tuple = new TupleReader(res.result);
-        return tuple.readBigNumber();
+        const res = await provider.get('compute_returned_stake', [{ type: 'int', value: BigInt('0x' + address.hash.toString('hex')) }]);
+        return res.stack.readBigNumber();
     }
 
-    async getPastElectionsList(block: number) {
-        let res = await this.client.runMethod(block, this.address, 'past_elections_list');
-        if (res.exitCode !== 0 && res.exitCode !== 1) {
-            throw Error('Exit code: ' + res.exitCode);
-        }
-        let tuple = new TupleReader(res.result);
-        const electionsListRaw = new TupleReader(tuple.readLispList());
+    async getPastElectionsList(provider: ContractProvider) {
+        const res = await provider.get('past_elections_list', []);
+        const electionsListRaw = new TupleReader(res.stack.readLispList());
 
         const elections: { id: number, unfreezeAt: number, stakeHeld: number }[] = [];
 
@@ -165,13 +159,9 @@ export class ElectorContract4 implements Contract {
         return elections;
     }
 
-    async getPastElections(block: number) {
-        const res = await this.client.runMethod(block, this.address, 'past_elections');
-        if (res.exitCode !== 0 && res.exitCode !== 1) {
-            throw Error('Exit code: ' + res.exitCode);
-        }
-        let tuple = new TupleReader(res.result);
-        const electionsRaw = new TupleReader(tuple.readLispList());
+    async getPastElections(provider: ContractProvider) {
+        const res = await provider.get('past_elections', []);
+        const electionsRaw = new TupleReader(res.stack.readLispList());
 
         const elections: { id: number, unfreezeAt: number, stakeHeld: number, totalStake: bigint, bonuses: bigint, frozen: Map<string, { address: Address, weight: bigint, stake: bigint }> }[] = [];
 
@@ -200,18 +190,18 @@ export class ElectorContract4 implements Contract {
         return elections;
     }
 
-    async getElectionEntities(block: number) {
+    async getElectionEntities(provider: ContractProvider) {
 
         //
         // NOTE: this method doesn't call get method since for some reason it doesn't work
         //
 
-        const account = await this.client.getAccount(block, this.address);
-        if (account.account.state.type !== 'active') {
+        const account = await provider.getState()
+
+        if (account.state.type !== 'active') {
             throw Error('Unexpected error');
         }
-
-        const cell = Cell.fromBoc(Buffer.from(account.account.state.data!, 'base64'))[0];
+        const cell = Cell.fromBoc(account.state.data! as Buffer)[0];
         const cs = cell.beginParse();
         if (!cs.loadBit()) {
             return null;
@@ -265,28 +255,21 @@ export class ElectorContract4 implements Contract {
     //     return { minStake, allStakes, endElectionsTime, startWorkTime, entities };
     // }
 
-    async getActiveElectionId(block: number) {
-        const res = await this.client.runMethod(block, this.address, 'active_election_id');
-        if (res.exitCode !== 0 && res.exitCode !== 1) {
-            throw Error('Exit code: ' + res.exitCode);
-        }
-        const tuple = new TupleReader(res.result);
-        const electionId = tuple.readNumber();
+    async getActiveElectionId(provider: ContractProvider) {
+        const res = await provider.get('active_election_id', []);
+        const electionId = res.stack.readNumber();
         return electionId > 0 ? electionId : null;
     }
 
-    async getComplaints(block: number, electionId: number) {
+    async getComplaints(provider: ContractProvider, electionId: number) {
         const b = new TupleBuilder();
         b.writeNumber(electionId);
-        let res = await this.client.runMethod(block, this.address, 'list_complaints', b.build());
-        if (res.exitCode !== 0 && res.exitCode !== 1) {
-            throw Error('Exit code: ' + res.exitCode);
-        }
-        if (res.result[0].type === 'null') {
+        const res = await provider.get('list_complaints', b.build());
+        if (res.stack.peek().type === 'null') {
             return []
         }
-        let tuple = new TupleReader(res.result);
-        const complaintsRaw = new TupleReader(tuple.readLispList());
+        //let tuple = new TupleReader(res.result);
+        const complaintsRaw = new TupleReader(res.stack.readLispList());
 
         const results: {
             id: bigint,

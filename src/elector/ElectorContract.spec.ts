@@ -7,28 +7,31 @@
  */
 
 import { createTestClient4 } from "../utils/createTestClient4";
-import { Address, internal } from "ton-core";
-import { ElectorContract4 } from "./ElectorContract4";
+import { Address } from "ton-core";
+import { ElectorContract } from "./ElectorContract";
 
-let client = createTestClient4("mainnet");
-const ec = new ElectorContract4(client);
+const client = createTestClient4("mainnet");
 const KNOWN_BLOCK = 31091335;
 const BLOCK_WITH_TWO_PAST_ELECTIONS_ENTRIES = 30910280;
 const BLOCK_WITH_COMPLAINTS = 20579335;
 const ELECTIONS_ID_WITH_COMPLAUINTS = 1652554259;
+const ecTwoPastElectionsEntries = client.openAt(BLOCK_WITH_TWO_PAST_ELECTIONS_ENTRIES, ElectorContract.create());
+const ecKnownBlock = client.openAt(KNOWN_BLOCK, ElectorContract.create());
+const ecWithComaplints = client.openAt(BLOCK_WITH_COMPLAINTS, ElectorContract.create());
 
 
-describe('ElectorContract4', () => {
+
+describe('ElectorContract', () => {
 
     it('should return correct past elections list', async () => {
-        expect(await ec.getPastElectionsList(BLOCK_WITH_TWO_PAST_ELECTIONS_ENTRIES)).toEqual([
+        expect(await ecTwoPastElectionsEntries.getPastElectionsList()).toEqual([
             { id: 1688555272, unfreezeAt: 1688653586, stakeHeld: 32768 },
             { id: 1688620808, unfreezeAt: 1688719112, stakeHeld: 32768 }
         ]);
     });
 
     it('should return correct past elections records', async () => {
-        const pastElections = await ec.getPastElections(BLOCK_WITH_TWO_PAST_ELECTIONS_ENTRIES);
+        const pastElections = await ecTwoPastElectionsEntries.getPastElections();
 
         expect(pastElections[0].id).toEqual(1688555272);
         expect(pastElections[0].unfreezeAt).toEqual(1688653586);
@@ -52,7 +55,7 @@ describe('ElectorContract4', () => {
     });
 
     it('should return correct election entities', async () => {
-        const electionEntities = await ec.getElectionEntities(KNOWN_BLOCK);
+        const electionEntities = await ecKnownBlock.getElectionEntities();
 
         expect(electionEntities!.minStake).toEqual(300000000000000n);
         expect(electionEntities!.allStakes).toEqual(237218561486530661n);
@@ -66,7 +69,7 @@ describe('ElectorContract4', () => {
     });
 
     it('should return correct election entities', async () => {
-        const complaints = await ec.getComplaints(BLOCK_WITH_COMPLAINTS, ELECTIONS_ID_WITH_COMPLAUINTS);
+        const complaints = await ecWithComaplints.getComplaints(ELECTIONS_ID_WITH_COMPLAUINTS);
         expect(complaints[0].rewardAddress.equals(Address.parse('Ef9X6ObXojpUZza3NiS2TnRJ4KR7ler8cOjMRBt_swy4Qp2j'))).toBe(true);
         const actual = [];
         for (let index = 0; index < complaints.length; index++) {
