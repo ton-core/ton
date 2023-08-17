@@ -1,10 +1,10 @@
 import { Address, ADNLAddress, BitBuilder, Cell, Contract, TupleReader, TupleBuilder, Dictionary, DictionaryValue, Slice, Builder, ContractProvider } from "ton-core";
 
 
-class FrozenDictValue implements DictionaryValue<{ address: Address, weight: bigint, stake: bigint }> {
-    public serialize(src: any, builder: Builder): void {
+const FrozenDictValue: DictionaryValue<{ address: Address, weight: bigint, stake: bigint }> = {
+    serialize(src: any, builder: Builder): void {
         throw Error("not implemented")
-    }
+    },
     parse(src: Slice): { address: Address, weight: bigint, stake: bigint } {
         const address = new Address(-1, src.loadBuffer(32));
         const weight = src.loadUintBig(64);
@@ -13,10 +13,10 @@ class FrozenDictValue implements DictionaryValue<{ address: Address, weight: big
     }
 }
 
-class EntitiesDictValue implements DictionaryValue<{ stake: bigint, address: Address, adnl: Buffer }> {
-    public serialize(src: any, builder: Builder): void {
+const EntitiesDictValue: DictionaryValue<{ stake: bigint, address: Address, adnl: Buffer }> = {
+    serialize(src: any, builder: Builder): void {
         throw Error("not implemented")
-    }
+    },
     parse(src: Slice): { stake: bigint, address: Address, adnl: Buffer } {
         const stake = src.loadCoins();
         // skip time and maxFactor
@@ -177,7 +177,7 @@ export class ElectorContract implements Contract {
             let frozen: Map<string, { address: Address, weight: bigint, stake: bigint }> = new Map();
             const frozenData = frozenDict.beginParse().loadDictDirect(
                 Dictionary.Keys.Buffer(32),
-                new FrozenDictValue
+                FrozenDictValue
             );
             for (const [key, value] of frozenData) {
                 frozen.set(
@@ -213,7 +213,7 @@ export class ElectorContract implements Contract {
         const minStake = sc.loadCoins();
         const allStakes = sc.loadCoins();
         // var (stake, time, max_factor, addr, adnl_addr) = (cs~load_grams(), cs~load_uint(32), cs~load_uint(32), cs~load_uint(256), cs~load_uint(256));
-        const entitiesData = sc.loadDict(Dictionary.Keys.Buffer(32), new EntitiesDictValue);
+        const entitiesData = sc.loadDict(Dictionary.Keys.Buffer(32), EntitiesDictValue);
         let entities: { pubkey: Buffer, stake: bigint, address: Address, adnl: Buffer }[] = [];
         // const failed = sc.loadBit();
         // const finished = sc.loadBit();
