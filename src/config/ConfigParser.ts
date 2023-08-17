@@ -16,10 +16,10 @@ function readPublicKey(slice: Slice) {
     return slice.loadBuffer(32);
 }
 
-class ValidatorDescriptionDictValue implements DictionaryValue<{publicKey: Buffer, weight: bigint, adnlAddress: Buffer|null}> {
-    public serialize(src: any, builder: Builder): void {
+const ValidatorDescriptionDictValue: DictionaryValue<{publicKey: Buffer, weight: bigint, adnlAddress: Buffer|null}> = {
+    serialize(src: any, builder: Builder): void {
         throw Error("not implemented")
-    }
+    },
     parse(src: Slice): {publicKey: Buffer, weight: bigint, adnlAddress: Buffer|null} {
         const header = src.loadUint(8);
         if (header === 0x53) {
@@ -47,7 +47,7 @@ export function parseValidatorSet(slice: Slice) {
         const timeUntil = slice.loadUint(32);
         const total = slice.loadUint(16);
         const main = slice.loadUint(16);
-        const list = slice.loadDictDirect(Dictionary.Keys.Uint(16), new ValidatorDescriptionDictValue);
+        const list = slice.loadDictDirect(Dictionary.Keys.Uint(16), ValidatorDescriptionDictValue);
         return {
             timeSince,
             timeUntil,
@@ -62,7 +62,7 @@ export function parseValidatorSet(slice: Slice) {
         const total = slice.loadUint(16);
         const main = slice.loadUint(16);
         const totalWeight = slice.loadUintBig(64);
-        const list = slice.loadDict(Dictionary.Keys.Uint(16), new ValidatorDescriptionDictValue);
+        const list = slice.loadDict(Dictionary.Keys.Uint(16), ValidatorDescriptionDictValue);
         return {
             timeSince,
             timeUntil,
@@ -190,10 +190,10 @@ export type StoragePrices = {
     mc_bit_price_ps: bigint,
     mc_cell_price_ps: bigint
 }
-class StoragePricesDictValue implements DictionaryValue<StoragePrices> {
-    public serialize(src: any, builder: Builder): void {
+const StoragePricesDictValue: DictionaryValue<StoragePrices> = {
+    serialize(src: any, builder: Builder): void {
         throw Error("not implemented")
-    }
+    },
     parse(src: Slice): StoragePrices {
         const header = src.loadUint(8);
         if (header !== 0xcc) {
@@ -217,7 +217,7 @@ export function configParse18(slice: Slice | null | undefined): StoragePrices[] 
     if (!slice) {
         throw Error('Invalid config');
     }
-    return slice.loadDictDirect(Dictionary.Keys.Buffer(4), new StoragePricesDictValue).values()
+    return slice.loadDictDirect(Dictionary.Keys.Buffer(4), StoragePricesDictValue).values()
 }
 
 export function configParse8(slice: Slice | null | undefined) {
@@ -333,10 +333,10 @@ export type WorkchainDescriptor = {
     }
 }
 
-class WorkchainDescriptorDictValue implements DictionaryValue<WorkchainDescriptor> {
-    public serialize(src: any, builder: Builder): void {
+const WorkchainDescriptorDictValue: DictionaryValue<WorkchainDescriptor> = {
+    serialize(src: any, builder: Builder): void {
         throw Error("not implemented")
-    }
+    },
     parse(src: Slice): WorkchainDescriptor {
         if (src.loadUint(8) !== 0xA6) {
             throw Error('Invalid config');
@@ -385,7 +385,7 @@ export function configParse12(slice: Slice | null | undefined) {
         throw Error('Invalid config');
     }
 
-    const wd = slice.loadDict(Dictionary.Keys.Uint(32), new WorkchainDescriptorDictValue);
+    const wd = slice.loadDict(Dictionary.Keys.Uint(32), WorkchainDescriptorDictValue);
     if (wd) {
         return wd
     }
