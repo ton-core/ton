@@ -13,20 +13,20 @@ import { configParse5, configParse13, configParse17, configParse18, configParseV
 const client = createTestClient4("mainnet");
 const KNOWN_BLOCK = 31091335;
 
-describe('ElectorContract4', () => {
+describe('ConfigContract', () => {
 
     // for some reason api returns 500 for this reques
     // it('should return correct burning config', async () => {
-    //     const srializedConfigsCell = (await client.getConfig(KNOWN_BLOCK, [13])).config.cell;
-    //     const config13 = configParse13(loadConfigParamById(srializedConfigsCell, 13).beginParse());
+    //     const serializedConfigsCell = (await client.getConfig(KNOWN_BLOCK, [13])).config.cell;
+    //     const config13 = configParse13(loadConfigParamById(serializedConfigsCell, 13).beginParse());
 
     //     console.log(config13);
 
     // });
 
     it('should return correct complaint pricing', async () => {
-        const srializedConfigsCell = (await client.getConfig(KNOWN_BLOCK, [5])).config.cell;
-        const config5 = configParse5(loadConfigParamById(srializedConfigsCell, 5).beginParse());
+        const serializedConfigsCell = (await client.getConfig(KNOWN_BLOCK, [5])).config.cell;
+        const config5 = configParse5(loadConfigParamById(serializedConfigsCell, 5).beginParse());
 
         expect(config5!.blackholeAddr!.equals(Address.parse('Ef___________________________________________7Sg'))).toBe(true);
         expect(config5!.feeBurnNominator).toEqual(1);
@@ -34,8 +34,8 @@ describe('ElectorContract4', () => {
     });
 
     it('should return correct workckain description', async () => {
-        const srializedConfigsCell = (await client.getConfig(KNOWN_BLOCK, [12])).config.cell;
-        const config12 = configParse12(loadConfigParamById(srializedConfigsCell, 12).beginParse());
+        const serializedConfigsCell = (await client.getConfig(KNOWN_BLOCK, [12])).config.cell;
+        const config12 = configParse12(loadConfigParamById(serializedConfigsCell, 12).beginParse());
 
         expect(config12!.get(0)).toEqual({
             enabledSince: 1573821854,
@@ -58,8 +58,8 @@ describe('ElectorContract4', () => {
     });
     
     it('should return correct config17', async () => {
-        const srializedConfigsCell = (await client.getConfig(KNOWN_BLOCK, [17])).config.cell;
-        const config17 = configParse17(loadConfigParamById(srializedConfigsCell, 17).beginParse());
+        const serializedConfigsCell = (await client.getConfig(KNOWN_BLOCK, [17])).config.cell;
+        const config17 = configParse17(loadConfigParamById(serializedConfigsCell, 17).beginParse());
 
         expect(config17).toEqual({
             minStake: 300000000000000n,
@@ -70,8 +70,8 @@ describe('ElectorContract4', () => {
     });
 
     it('should return correct config18', async () => {
-        const srializedConfigsCell = (await client.getConfig(KNOWN_BLOCK, [18])).config.cell;
-        const config18 = configParse18(loadConfigParamById(srializedConfigsCell, 18).beginParse());
+        const serializedConfigsCell = (await client.getConfig(KNOWN_BLOCK, [18])).config.cell;
+        const config18 = configParse18(loadConfigParamById(serializedConfigsCell, 18).beginParse());
 
         expect(config18[0]).toEqual({
             utime_since: 0,
@@ -83,8 +83,8 @@ describe('ElectorContract4', () => {
     });
 
     it('should return correct prevValidators', async () => {
-        const srializedConfigsCell = (await client.getConfig(KNOWN_BLOCK, [32])).config.cell;
-        const config32 = configParseValidatorSet(loadConfigParamById(srializedConfigsCell, 32).beginParse());
+        const serializedConfigsCell = (await client.getConfig(KNOWN_BLOCK, [32])).config.cell;
+        const config32 = configParseValidatorSet(loadConfigParamById(serializedConfigsCell, 32).beginParse());
 
         expect(config32!.timeSince).toEqual(1689145096);
         expect(config32!.timeUntil).toEqual(1689210632);
@@ -99,8 +99,8 @@ describe('ElectorContract4', () => {
     });
 
     it('should return correct ethereum bridge', async () => {
-        const srializedConfigsCell = (await client.getConfig(KNOWN_BLOCK, [71])).config.cell;
-        const config71 = configParseBridge(loadConfigParamById(srializedConfigsCell, 71).beginParse());
+        const serializedConfigsCell = (await client.getConfig(KNOWN_BLOCK, [71])).config.cell;
+        const config71 = configParseBridge(loadConfigParamById(serializedConfigsCell, 71).beginParse());
 
         expect(config71!.bridgeAddress.equals(Address.parse('Ef_dJMSh8riPi3BTUTtcxsWjG8RLKnLctNjAM4rw8NN-xWdr'))).toBe(true);
         expect(config71!.oracleMultisigAddress.equals(Address.parse('Ef87m7_QrVM4uXAPCDM4DuF9Rj5Rwa5nHubwiQG96JmyAjQY'))).toBe(true);
@@ -110,7 +110,7 @@ describe('ElectorContract4', () => {
     });
 
     it('should not reise error when loading full config', async () => {
-        const srializedConfigsCell = (await client.getConfig(KNOWN_BLOCK)).config.cell;
-        parseFullConfig(loadConfigParamsAsSlice(srializedConfigsCell));
+        const serializedConfigsCell = (await client.getConfig(KNOWN_BLOCK)).config.cell;
+        parseFullConfig(loadConfigParamsAsSlice(serializedConfigsCell));
     });
 });

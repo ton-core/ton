@@ -1,4 +1,4 @@
-import { Address, ADNLAddress, BitBuilder, Cell, Contract, TupleReader, TupleBuilder, Dictionary, DictionaryValue, Slice, Builder, ContractProvider } from "ton-core";
+import { Address, Cell, Contract, TupleReader, TupleBuilder, Dictionary, DictionaryValue, Slice, Builder, ContractProvider } from "ton-core";
 
 
 const FrozenDictValue: DictionaryValue<{ address: Address, weight: bigint, stake: bigint }> = {
