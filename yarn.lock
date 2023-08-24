@@ -8146,14 +8146,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ton-core@npm:^0.51.0":
-  version: 0.51.0
-  resolution: "ton-core@npm:0.51.0"
+"ton-core@npm:^0.52.0":
+  version: 0.52.0
+  resolution: "ton-core@npm:0.52.0"
   dependencies:
     symbol.inspect: 1.0.1
   peerDependencies:
     ton-crypto: ">=3.2.0"
-  checksum: 574183343c1fbfb67c2a3f414ac2c5a2819485da93e3cf11525e012986fca3d9fa447b01f09e8a0704145a3fd754a7402d921f5051b0fa4eff8c6e61d4e16e6b
+  checksum: dcb50ff6e2f7cb4c42a561319573ab07f7ff296229a7dec1210bcae6980e2a141a368136d9dacc45b93e6a5f24c4f820838a1aa724a69676458461373a3a587a
   languageName: node
   linkType: hard
 
@@ -8213,7 +8213,7 @@ __metadata:
     release-it: ^15.5.1
     symbol.inspect: 1.0.1
     teslabot: ^1.3.0
-    ton-core: ^0.51.0
+    ton-core: ^0.52.0
     ton-crypto: 3.2.0
     ton-emulator: ^2.1.1
     ts-jest: ^27.0.5
