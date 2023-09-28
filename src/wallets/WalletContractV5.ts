@@ -226,7 +226,7 @@ export class WalletContractV5 implements Contract {
         this.walletId = walletId;
 
         // Build initial code and data
-        let code = Cell.fromBoc(Buffer.from('te6cckECEQEAAdEAART/APSkE/S88sgLAQIBIAMCAD7y7UTQ0x/TT9P/9ATRBNMfAYIQc2lnbrqSXwXhBPACAgFICwQCASAGBQAbvl8PaiaECAuGuQ+gIYQCASAKBwIBIAkIABm0XR2omhAEGuQ64WnwABG1kv2omhrhY/AAGbs5ztRNCAcNch1wv/gCAs4NDACFQEgwjXGCDTT9Mf0x8C+CO78mQnuvKhURW68qIB+QFUECP5EPKj+AADpCDIyx9SMMtPUiDL/1JQ9ADJ7VT4DwME8AGAIBIBAOARslATTAAGK6GxB1DDtVYA8A6tMfIYIQH/jqC7qU1AHtVN4hghAcQNufuiKCEF6u9KS6sY5L+kAB+kRSEAGksiOCEBxA25+6ngHIygdUIAiDB/RT8qcGkTHiAoIQXq70pLqYBYMH9FvyqASRMeIjyMsfUjDLT1Igy/9SUPQAye1UkTHi1DDQBADvO2i7fsy0NMDAXGwkVvgIddJwSCRW+AB0x8hghBleHRuvSKCEHNpZ269sJJfA+DtRNDTH9NP0//0BNElghBleHRuuo4fBvpAMPpEAaSyJoMH9A5voTGzlF8G2zHgVHMhUzjwAZE24gSCEHNpZ266lEA08AKSXwXigzLrynA==', 'base64'))[0];
+        let code = Cell.fromBoc(Buffer.from('te6cckEBAQEAIwAIQgLND3fEdsoVqej99mmdJbaOAOcmH9K3vkNG64R7FPAsl9kimVw=', 'base64'))[0];
         let data = beginCell()
             .storeUint(0, 32) // Seqno
             .storeUint(this.walletId.serialized, 80)

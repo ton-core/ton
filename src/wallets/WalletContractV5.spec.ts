@@ -7,19 +7,31 @@
  */
 
 import { randomTestKey } from "../utils/randomTestKey";
-import { createTestClient4 } from "../utils/createTestClient4";
 import { Address, internal, OpenedContract } from "ton-core";
 import { WalletContractV5, WalletId } from "./WalletContractV5";
-import { TonClient4 } from "../client/TonClient4";
 import { KeyPair } from "ton-crypto";
+import { createTestClient } from "../utils/createTestClient";
+import { TonClient } from "../client/TonClient";
+
+const getExtensionsArray = async (wallet: OpenedContract<WalletContractV5>) => {
+    try {
+        return await wallet.getExtensionsArray();
+    } catch (e) {
+        // Handle toncenter bug. Toncenter incorrectly returns 'list' in the stack in case of empty extensions dict
+        if (e && typeof e === 'object' && 'message' in e && e.message === 'Unsupported stack item type: list') {
+            return [];
+        }
+        throw e;
+    }
+}
 
 describe('WalletContractV5', () => {
-    let client: TonClient4;
+    let client: TonClient;
     let walletKey: KeyPair;
     let wallet: OpenedContract<WalletContractV5>;
 
     beforeEach(() => {
-        client = createTestClient4();
+        client = createTestClient();
         walletKey = randomTestKey('v5-treasure');
         wallet = client.open(WalletContractV5.create({ walletId: new WalletId({ networkGlobalId: -3 }), publicKey: walletKey.publicKey }));
 
@@ -28,13 +40,26 @@ describe('WalletContractV5', () => {
     it('should has balance and correct address', async () => {
        const balance = await wallet.getBalance();
 
-        expect(wallet.address.equals(Address.parse('EQCVEXTnSTn-bOHCOYunoAKfRaxhiGeo6stDQw-q34INKQi5'))).toBeTruthy();
+        expect(wallet.address.equals(Address.parse('EQDv2B0jPmJZ1j-ne3Ko64eGqfYZRHGQbfSE5pUWVvUdQmDH'))).toBeTruthy();
         expect(balance > 0n).toBe(true);
     });
 
+    it('should perform single transfer', async () => {
+        const seqno = await wallet.getSeqno();
+        const transfer = wallet.createTransfer({
+            seqno,
+            secretKey: walletKey.secretKey,
+            messages: [internal({
+                to: 'EQDQ0PRYSWmW-v6LVHNYq5Uelpr5f7Ct7awG7Lao2HImrCzn',
+                value: '0.01',
+                body: 'Hello world single transfer!'
+            })]
+        });
 
+        await wallet.send(transfer);
+    });
 
-   it('should perform transfer', async () => {
+   it('should perform double transfer', async () => {
         const seqno = await wallet.getSeqno();
         const transfer = wallet.createTransfer({
             seqno,
@@ -59,7 +84,7 @@ describe('WalletContractV5', () => {
 
 
         const seqno = await wallet.getSeqno();
-        const extensions = await wallet.getExtensionsArray();
+        const extensions = await getExtensionsArray(wallet);
 
         const extensionAlreadyAdded = extensions.some(address => address.equals(extensionContract.address));
 
@@ -74,7 +99,7 @@ describe('WalletContractV5', () => {
                 if (attempt >= 10) {
                     throw new Error('Extension was not added in 10 blocks');
                 }
-                const extensions = await wallet.getExtensionsArray();
+                const extensions = await getExtensionsArray(wallet);
                 const extensionAdded = extensions.some(address => address.equals(extensionContract.address));
                 if (extensionAdded) {
                     return;
@@ -112,7 +137,7 @@ describe('WalletContractV5', () => {
 
 
         const seqno = await wallet.getSeqno();
-        const extensions = await wallet.getExtensionsArray();
+        const extensions = await getExtensionsArray(wallet);
 
         const extensionAlreadyAdded = extensions.some(address => address.equals(extensionContract.address));
 
