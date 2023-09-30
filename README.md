@@ -1,5 +1,14 @@
 # TON js client
 
+## 🚨 Repository Deprecated and Moved! 🚨
+
+**This repository has been deprecated and is no longer actively maintained.** We have moved our project to a new repository, which you can find here: [ton-org/ton](https://github.com/ton-org/ton). The new NPM package is available here: [@ton/ton](https://www.npmjs.com/package/@ton/ton)
+
+Please make sure to update your bookmarks and star the new repository to stay up-to-date with the latest developments and updates. This repository will be archived and eventually removed.
+
+**Thank you for your continued support!**
+___________
+
 [![Version npm](https://img.shields.io/npm/v/ton.svg?logo=npm)](https://www.npmjs.com/package/ton)
 
 Cross-platform client for TON blockchain.
