@@ -6,10 +6,17 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import { beginCell, MessageRelaxed, storeMessageRelaxed } from "ton-core";
+import { beginCell, Builder, MessageRelaxed, OutAction, storeMessageRelaxed } from "ton-core";
 import { sign } from "ton-crypto";
 import { Maybe } from "../../utils/maybe";
-import { OutListExtended, Wallet5SendArgs, WalletContractV5 } from "../WalletContractV5";
+import {
+    Wallet5SendArgs,
+    WalletContractV5
+} from "../WalletContractV5";
+import {
+    OutActionExtended,
+    storeOutListExtended
+} from "../WalletV5Utils";
 
 export function createWalletTransferV1(args: { seqno: number, sendMode: number, message: Maybe<MessageRelaxed>, secretKey: Buffer }) {
 
@@ -151,20 +158,20 @@ export function createWalletTransferV4(args: {
     return body;
 }
 
-export function createWalletTransferV5(args: Wallet5SendArgs & { actions: OutListExtended, walletId: bigint }) {
+export function createWalletTransferV5(args: Wallet5SendArgs & { actions: (OutAction | OutActionExtended)[], walletId: (builder: Builder) => void }) {
     // Check number of actions
-    if (args.actions.outActions.length > 255) {
+    if (args.actions.length > 255) {
         throw Error("Maximum number of OutActions in a single request is 255");
     }
 
     if (!('secretKey' in args) || !args.secretKey) {
         return beginCell()
             .storeUint(WalletContractV5.opCodes.auth_extension, 32)
-            .storeSlice(args.actions.cell.beginParse())
+            .store(storeOutListExtended(args.actions))
             .endCell();
     }
 
-    const message = beginCell().storeUint(args.walletId, 80);
+    const message = beginCell().store(args.walletId);
     if (args.seqno === 0) {
         for (let i = 0; i < 32; i++) {
             message.storeBit(1);
@@ -173,7 +180,7 @@ export function createWalletTransferV5(args: Wallet5SendArgs & { actions: OutLis
         message.storeUint(args.timeout || Math.floor(Date.now() / 1e3) + 60, 32); // Default timeout: 60 seconds
     }
 
-     message.storeUint(args.seqno, 32).storeSlice(args.actions.cell.beginParse());
+     message.storeUint(args.seqno, 32).store(storeOutListExtended(args.actions));
 
     // Sign message
     const signature = sign(message.endCell().hash(), args.secretKey);

@@ -8,7 +8,7 @@
 
 import {
     Address,
-    beginCell, BitBuilder, BitReader, BitString,
+    beginCell,
     Cell,
     Contract,
     contractAddress,
@@ -16,173 +16,13 @@ import {
     internal,
     MessageRelaxed,
     OutAction,
-    OutList,
     Sender,
     SendMode
 } from "ton-core";
 import { Maybe } from "../utils/maybe";
 import { createWalletTransferV5 } from "./signing/createWalletTransfer";
+import {OutActionExtended, storeWalletId, WalletId} from "./WalletV5Utils";
 
-
-export class ActionSetData {
-    public static readonly tag = 0x1ff8ea0b;
-
-    public readonly tag = ActionSetData.tag;
-
-    public serialized: Cell
-
-    constructor(public readonly data: Cell) {
-        this.serialized = beginCell().storeUint(this.tag, 32).storeRef(this.data).endCell();
-    }
-}
-
-export class ActionAddExtension {
-    public static readonly tag = 0x1c40db9f;
-
-    public readonly tag = ActionAddExtension.tag;
-
-    public serialized: Cell;
-
-    constructor(public readonly address: Address) {
-        this.serialized = beginCell().storeUint(this.tag, 32).storeAddress(this.address).endCell();
-    }
-}
-
-export class ActionRemoveExtension {
-    public static readonly tag = 0x5eaef4a4;
-
-    public readonly tag = ActionRemoveExtension.tag;
-
-    public serialized: Cell
-
-    constructor(public readonly address: Address) {
-        this.serialized = beginCell().storeUint(this.tag, 32).storeAddress(this.address).endCell();
-    }
-}
-
-export type OutActionExtended = ActionSetData | ActionAddExtension | ActionRemoveExtension;
-export const OutActionExtended = {
-    addExtension(...args: ConstructorParameters<typeof ActionAddExtension>) {
-        return new ActionAddExtension(...args);
-    },
-    removeExtension(...args: ConstructorParameters<typeof ActionRemoveExtension>) {
-        return new ActionRemoveExtension(...args);
-    },
-    setData(...args: ConstructorParameters<typeof ActionSetData>) {
-        return new ActionSetData(...args);
-    }
-}
-
-export function isOutActionExtended(action: OutAction | OutActionExtended): action is OutActionExtended {
-    return (
-        action.tag === ActionSetData.tag ||
-        action.tag === ActionAddExtension.tag ||
-        action.tag === ActionRemoveExtension.tag
-    );
-}
-
-export class OutListExtended {
-    public readonly cell: Cell;
-
-    public _outActions: OutAction[] = [];
-
-    public get outActions(): OutAction[] {
-        return this._outActions;
-    }
-
-    constructor(public readonly actions: (OutAction | OutActionExtended)[]) {
-        this.cell = this.packActionsListExtended(actions);
-    }
-
-    private packActionsListExtended(actions: (OutAction | OutActionExtended)[]): Cell {
-        const [action, ...rest] = actions;
-
-        if (!action || !isOutActionExtended(action)) {
-            if (actions.some(isOutActionExtended)) {
-                throw new Error("Can't serialize actions list: all extended actions must be placed before out actions");
-            }
-
-            const outActionsList = new OutList(actions as OutAction[]);
-            this._outActions = outActionsList.actions;
-
-            return beginCell()
-                .storeUint(0, 1)
-                .storeRef(outActionsList.cell)
-                .endCell();
-        }
-
-        return beginCell()
-            .storeUint(1, 1)
-            .storeSlice(action.serialized.beginParse())
-            .storeRef(this.packActionsListExtended(rest))
-            .endCell();
-    }
-}
-
-export class WalletId {
-    static readonly versionsSerialisation: Record<WalletId['walletVersion'], number> = {
-        v5: 0
-    };
-
-    static deserialize(walletId: bigint | Buffer): WalletId {
-        const bitReader = new BitReader(
-            new BitString(
-                typeof walletId === 'bigint' ? Buffer.from(walletId.toString(16), 'hex') : walletId,
-                0,
-                80
-            )
-        );
-        const networkGlobalId = bitReader.loadInt(32);
-        const workChain = bitReader.loadInt(8);
-        const walletVersionRaw = bitReader.loadUint(8);
-        const subwalletNumber = bitReader.loadUint(32);
-
-        const walletVersion = Object.entries(this.versionsSerialisation).find(
-            ([_, value]) => value === walletVersionRaw
-        )?.[0] as WalletId['walletVersion'] | undefined;
-
-        if (walletVersion === undefined) {
-            throw new Error(
-                `Can't deserialize walletId: unknown wallet version ${walletVersionRaw}`
-            );
-        }
-
-        return new WalletId({ networkGlobalId, workChain, walletVersion, subwalletNumber });
-    }
-
-    readonly walletVersion: 'v5';
-
-    /**
-     * -239 is mainnet, -3 is testnet
-     */
-    readonly networkGlobalId: number;
-
-    readonly workChain: number;
-
-    readonly subwalletNumber: number;
-
-    readonly serialized: bigint;
-
-    constructor(args?: {
-        networkGlobalId?: number;
-        workChain?: number;
-        subwalletNumber?: number;
-        walletVersion?: 'v5';
-    }) {
-        this.networkGlobalId = args?.networkGlobalId ?? -239;
-        this.workChain = args?.workChain ?? 0;
-        this.subwalletNumber = args?.subwalletNumber ?? 0;
-        this.walletVersion = args?.walletVersion ?? 'v5';
-
-        const bitBuilder = new BitBuilder(80);
-        bitBuilder.writeInt(this.networkGlobalId, 32);
-        bitBuilder.writeInt(this.workChain, 8);
-        bitBuilder.writeUint(WalletId.versionsSerialisation[this.walletVersion], 8);
-        bitBuilder.writeUint(this.subwalletNumber, 32);
-
-        this.serialized = BigInt('0x' + bitBuilder.buffer().toString('hex'));
-    }
-}
 
 
 export type Wallet5BasicSendArgs = {
@@ -210,10 +50,16 @@ export class WalletContractV5 implements Contract {
     }
 
     static create(args: {
-        walletId?: WalletId,
+        walletId?: Partial<WalletId>,
         publicKey: Buffer
     }) {
-        return new WalletContractV5(args.walletId ?? new WalletId(), args.publicKey);
+        const walletId = {
+            networkGlobalId: args.walletId?.networkGlobalId ?? -239,
+            workChain: args?.walletId?.workChain ?? 0,
+            subwalletNumber: args?.walletId?.subwalletNumber ?? 0,
+            walletVersion: args?.walletId?.walletVersion ?? 'v5'
+        }
+        return new WalletContractV5(walletId, args.publicKey);
     }
 
     readonly address: Address;
@@ -229,7 +75,7 @@ export class WalletContractV5 implements Contract {
         let code = Cell.fromBoc(Buffer.from('te6cckEBAQEAIwAIQgLND3fEdsoVqej99mmdJbaOAOcmH9K3vkNG64R7FPAsl9kimVw=', 'base64'))[0];
         let data = beginCell()
             .storeUint(0, 32) // Seqno
-            .storeUint(this.walletId.serialized, 80)
+            .store(storeWalletId(this.walletId))
             .storeBuffer(this.publicKey)
             .storeBit(0) // Empty plugins dict
             .endCell();
@@ -327,7 +173,7 @@ export class WalletContractV5 implements Contract {
     /**
      * Sign and send request
      */
-    async sendRequest(provider: ContractProvider, args: Wallet5SendArgs & { actions: OutListExtended, }) {
+    async sendRequest(provider: ContractProvider, args: Wallet5SendArgs & { actions: (OutAction | OutActionExtended)[], }) {
         const request = this.createRequest(args);
         await this.send(provider, request);
     }
@@ -339,7 +185,7 @@ export class WalletContractV5 implements Contract {
         const { messages, ...rest } = args;
 
         const sendMode = args.sendMode ?? SendMode.PAY_GAS_SEPARATELY;
-        const actions = new OutListExtended(messages.map(message => OutAction.sendMsg(sendMode, message)));
+        const actions: OutAction[] = messages.map(message => ({ type: 'sendMsg', mode: sendMode, outMsg: message}));
 
         return this.createRequest({
             ...rest,
@@ -353,7 +199,10 @@ export class WalletContractV5 implements Contract {
     createAddExtension(args: Wallet5SendArgs & { extensionAddress: Address, }) {
         const { extensionAddress, ...rest } = args;
         return this.createRequest({
-            actions: new OutListExtended([OutActionExtended.addExtension(extensionAddress)]),
+            actions: [{
+                type: 'addExtension',
+                address: extensionAddress
+            }],
             ...rest
         })
     }
@@ -364,7 +213,10 @@ export class WalletContractV5 implements Contract {
     createRemoveExtension(args: Wallet5SendArgs & { extensionAddress: Address, }) {
         const { extensionAddress, ...rest } = args;
         return this.createRequest({
-            actions: new OutListExtended([OutActionExtended.removeExtension(extensionAddress)]),
+            actions: [{
+                type: 'removeExtension',
+                address: extensionAddress
+            }],
             ...rest
         })
     }
@@ -372,11 +224,11 @@ export class WalletContractV5 implements Contract {
     /**
      * Create signed request
      */
-    createRequest(args: Wallet5SendArgs & { actions: OutListExtended, }) {
+    createRequest(args: Wallet5SendArgs & { actions: (OutAction | OutActionExtended)[], }) {
         return createWalletTransferV5({
             ...args,
             sendMode: args.sendMode ?? SendMode.PAY_GAS_SEPARATELY,
-            walletId: this.walletId.serialized
+            walletId: storeWalletId(this.walletId)
         })
     }
 

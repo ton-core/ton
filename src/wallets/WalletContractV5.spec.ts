@@ -8,7 +8,7 @@
 
 import { randomTestKey } from "../utils/randomTestKey";
 import { Address, internal, OpenedContract } from "ton-core";
-import { WalletContractV5, WalletId } from "./WalletContractV5";
+import { WalletContractV5 } from "./WalletContractV5";
 import { KeyPair } from "ton-crypto";
 import { createTestClient } from "../utils/createTestClient";
 import { TonClient } from "../client/TonClient";
@@ -33,7 +33,7 @@ describe('WalletContractV5', () => {
     beforeEach(() => {
         client = createTestClient();
         walletKey = randomTestKey('v5-treasure');
-        wallet = client.open(WalletContractV5.create({ walletId: new WalletId({ networkGlobalId: -3 }), publicKey: walletKey.publicKey }));
+        wallet = client.open(WalletContractV5.create({ walletId: { networkGlobalId: -3 }, publicKey: walletKey.publicKey }));
 
     })
 
@@ -80,7 +80,7 @@ describe('WalletContractV5', () => {
 
     it('should add extension', async () => {
         const extensionKey = randomTestKey('v5-treasure-extension');
-        const extensionContract = client.open(WalletContractV5.create({ walletId: new WalletId({ workChain: 0, networkGlobalId: -3 }), publicKey: extensionKey.publicKey }));
+        const extensionContract = client.open(WalletContractV5.create({ walletId: { workChain: 0, networkGlobalId: -3 }, publicKey: extensionKey.publicKey }));
 
 
         const seqno = await wallet.getSeqno();
@@ -133,7 +133,7 @@ describe('WalletContractV5', () => {
 
     it('should remove extension', async () => {
         const extensionKey = randomTestKey('v5-treasure-extension');
-        const extensionContract = client.open(WalletContractV5.create({ walletId: new WalletId({ workChain: 0, networkGlobalId: -3 }), publicKey: extensionKey.publicKey }));
+        const extensionContract = client.open(WalletContractV5.create({ walletId: { workChain: 0, networkGlobalId: -3 }, publicKey: extensionKey.publicKey }));
 
 
         const seqno = await wallet.getSeqno();
@@ -152,7 +152,7 @@ describe('WalletContractV5', () => {
 
     it('should send internal transfer via relayer', async () => {
         const relaerKey = randomTestKey('v5-treasure-relayer');
-        const relayerContract = client.open(WalletContractV5.create({ walletId: new WalletId({ workChain: 0, networkGlobalId: -3 }), publicKey: relaerKey.publicKey }));
+        const relayerContract = client.open(WalletContractV5.create({ walletId: { workChain: 0, networkGlobalId: -3 }, publicKey: relaerKey.publicKey }));
 
 
         const seqno = await wallet.getSeqno();
