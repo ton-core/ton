@@ -58,7 +58,7 @@ describe('estimateFees', () => {
                 const computed = computeStorageFees({
                     lastPaid: storageStat.lastPaid,
                     masterchain: false,
-                    now: Math.floor(Date.now() / 1000),
+                    now: 1697445678, // Mon Oct 16 2023 11:42:56 GMT+0300
                     special: false,
                     storagePrices: config.storage,
                     storageStat: {
@@ -71,7 +71,7 @@ describe('estimateFees', () => {
             }
         }
 
-        expect(storageFees > toNano('0.000138')).toBe(true);
+        expect(fromNano(storageFees)).toBe('0.000138473');
 
         // Calculate import fees
         let importFees = computeExternalMessageFees(config.workchain.message as any, inMsg.endCell());
@@ -97,9 +97,9 @@ describe('estimateFees', () => {
         let fwdFees = computeMessageForwardFees(config.workchain.message as any, outMsg.endCell());
 
         expect(fromNano(fwdFees.fees)).toBe('0.000333328');
-        
+
         total += fwdFees.fees;
 
-        expect(total > toNano('0.005551')).toBe(true);
+        expect(fromNano(total)).toBe('0.005551801');
     });
 });
