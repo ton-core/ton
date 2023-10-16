@@ -1,12 +1,9 @@
-import { computeStorageFees, computeFwdFees, computeGasPrices, computeExternalMessageFees, computeMessageForwardFees } from './fees';
-import { MsgPrices } from '../config/ConfigParser';
-import { Builder, Cell, storeMessage, storeMessageRelaxed, external, comment, internal, Address, SendMode, fromNano } from 'ton-core';
+import { computeStorageFees, computeGasPrices, computeExternalMessageFees, computeMessageForwardFees } from './fees';
+import { Cell, storeMessage, storeMessageRelaxed, external, comment, internal, Address, SendMode, fromNano, toNano } from 'ton-core';
 import { WalletContractV4 } from '../wallets/WalletContractV4';
-import { TonClient4 } from '../client/TonClient4';
 
 describe('estimateFees', () => {
     it('should estimate fees correctly', () => {
-        let client = new TonClient4({ endpoint: 'https://mainnet-v4.tonhubapi.com' });
         const config = {
             storage: [{ utime_since: 0, bit_price_ps: BigInt(1), cell_price_ps: BigInt(500), mc_bit_price_ps: BigInt(1000), mc_cell_price_ps: BigInt(500000) }],
             workchain: {
@@ -74,8 +71,12 @@ describe('estimateFees', () => {
             }
         }
 
+        expect(storageFees > toNano('0.000138')).toBe(true);
+
         // Calculate import fees
         let importFees = computeExternalMessageFees(config.workchain.message as any, inMsg.endCell());
+
+        expect(fromNano(importFees)).toBe('0.001772');
 
         // Any transaction use this amount of gas
         const gasUsed = gasUsageByOutMsgs[1];
@@ -84,6 +85,7 @@ describe('estimateFees', () => {
             { flatLimit: config.workchain.gas.flatLimit, flatPrice: config.workchain.gas.flatGasPrice, price: config.workchain.gas.price }
         );
 
+        expect(fromNano(gasFees)).toBe('0.003308');
 
         // Total
         let total = BigInt(0);
@@ -93,8 +95,11 @@ describe('estimateFees', () => {
 
         // Forward fees
         let fwdFees = computeMessageForwardFees(config.workchain.message as any, outMsg.endCell());
+
+        expect(fromNano(fwdFees.fees)).toBe('0.000333328');
+        
         total += fwdFees.fees;
 
-        console.log('Total fees:', fromNano(total));
+        expect(total > toNano('0.005551')).toBe(true);
     });
 });
