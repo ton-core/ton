@@ -1,14 +1,14 @@
-import { Address, beginCell } from 'ton-core';
-import { TonClient } from './TonClient';
+import { Address } from 'ton-core';
 import { TonClient4 } from './TonClient4';
+import { backoff } from '../utils/time';
 
 let describeConditional = process.env.TEST_CLIENTS ? describe : describe.skip;
 
-describeConditional('TonClient', () => {
+    describeConditional('TonClient', () => {
     let client = new TonClient4({
         endpoint: 'https://mainnet-v4.tonhubapi.com',
     });
-    const testAddress = Address.parse('EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N');
+    const testAddress = Address.parse('EQBicYUqh1j9Lnqv9ZhECm0XNPaB7_HcwoBb3AJnYYfqB38_');
 
     let seqno!: number;
     beforeAll(async () => {
@@ -26,6 +26,13 @@ describeConditional('TonClient', () => {
 
         console.log(account, accountLite);
     });
+
+    it('should get account parsed transactions', async () => {
+        let accountLite = await backoff(async () => await client.getAccountLite(seqno, testAddress), true);
+        let parsedTransactions = await backoff(async () => await client.getAccountTransactionsParsed(testAddress, BigInt(accountLite.account.last!.lt), Buffer.from(accountLite.account.last!.hash, 'base64'), 10), true);
+
+        console.log(parsedTransactions.transactions.length);
+    }, 60_000);
 
     it('should get config', async () => {
         let config = await client.getConfig(seqno);
