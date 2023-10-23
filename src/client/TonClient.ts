@@ -325,6 +325,10 @@ function parseStackItem(s: any): TupleItem {
     } else if (s[0] === 'builder') {
         return { type: 'builder', cell: Cell.fromBoc(Buffer.from(s[1].bytes, 'base64'))[0] };
     } else if (s[0] === 'tuple' || s[0] === 'list') {
+        // toncenter.com missbehaviour
+        if (s[1].elements.length === 0) {
+            return { type: 'null' };
+        }
         return {
             type: s[0],
             items: s[1].elements.map(parseStackEntry)
