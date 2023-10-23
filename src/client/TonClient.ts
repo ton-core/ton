@@ -296,28 +296,46 @@ export class TonClient {
 }
 
 function parseStack(src: any[]) {
-    let stack: TupleItem[] = [];
-    for (let s of src) {
-        if (s[0] === 'num') {
-            let val = s[1] as string;
-            if (val.startsWith('-')) {
-                stack.push({ type: 'int', value: -BigInt(val.slice(1)) });
+    const _parseStack = (src: []) => {
+        let stack: TupleItem[] = [];
+        for (let s of src) {
+            if (s[0] === 'num') {
+                let val = s[1] as string;
+                if (val.startsWith('-')) {
+                    stack.push({ type: 'int', value: -BigInt(val.slice(1)) });
+                } else {
+                    stack.push({ type: 'int', value: BigInt(val) });
+                }
+            } else if (s[0] === 'null') {
+                stack.push({ type: 'null' });
+            } else if (s[0] === 'cell') {
+                stack.push({ type: 'cell', cell: Cell.fromBoc(Buffer.from(s[1].bytes, 'base64'))[0] });
+            } else if (s[0] === 'slice') {
+                stack.push({ type: 'slice', cell: Cell.fromBoc(Buffer.from(s[1].bytes, 'base64'))[0] });
+            } else if (s[0] === 'builder') {
+                stack.push({ type: 'builder', cell: Cell.fromBoc(Buffer.from(s[1].bytes, 'base64'))[0] });
+            } else if (s[0] === 'tuple') {
+                stack.push({ 
+                    type: 'tuple', 
+                    items: _parseStack(s[1].elements.map((e) => {
+                        switch (e["@type"]) {
+                            case "tvm.stackEntryNumber":
+                                return ["num", e.number.number];
+                            case "tvm.stackEntryCell":
+                                return ["cell", e.cell];
+                            default:
+                                throw Error("Unsupported item type: " + e["@type"]);
+                        }
+                    }))
+                })
             } else {
-                stack.push({ type: 'int', value: BigInt(val) });
+                throw Error('Unsupported stack item type: ' + s[0])
             }
-        } else if (s[0] === 'null') {
-            stack.push({ type: 'null' });
-        } else if (s[0] === 'cell') {
-            stack.push({ type: 'cell', cell: Cell.fromBoc(Buffer.from(s[1].bytes, 'base64'))[0] });
-        } else if (s[0] === 'slice') {
-            stack.push({ type: 'slice', cell: Cell.fromBoc(Buffer.from(s[1].bytes, 'base64'))[0] });
-        } else if (s[0] === 'builder') {
-            stack.push({ type: 'builder', cell: Cell.fromBoc(Buffer.from(s[1].bytes, 'base64'))[0] });
-        } else {
-            throw Error('Unsupported stack item type: ' + s[0])
         }
+        return stack;
     }
-    return new TupleReader(stack);
+
+    return new TupleReader(_parseStack(stack));
 }
 
 function createProvider(client: TonClient, address: Address, init: { code: Cell | null, data: Cell | null } | null): ContractProvider {
