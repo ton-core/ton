@@ -189,7 +189,16 @@ export class TonClient4 {
      * @returns parsed transactions
      */
     async getAccountTransactionsParsed(address: Address, lt: bigint, hash: Buffer, count: number = 20) {
-        let res = await axios.get(this.#endpoint + '/account/' + address.toString({ urlSafe: true }) + '/tx/parsed/' + lt.toString(10) + '/' + toUrlSafe(hash.toString('base64')) + '/' + count, { adapter: this.#adapter, timeout: this.#timeout });
+        let res = await axios.get(
+            this.#endpoint + '/account/' + address.toString({ urlSafe: true }) + '/tx/parsed/' + lt.toString(10) + '/' + toUrlSafe(hash.toString('base64')),
+            {
+                adapter: this.#adapter,
+                timeout: this.#timeout,
+                params: {
+                    count
+                }
+            }
+        );
         let parsedTransactionsRes = parsedTransactionsCodec.safeParse(res.data);
 
         if (!parsedTransactionsRes.success) {
