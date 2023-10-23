@@ -8,7 +8,7 @@
 
 import { HttpApi } from "./api/HttpApi";
 import { AxiosAdapter } from 'axios';
-import { Address, beginCell, Cell, comment, Contract, ContractProvider, ContractState, external, loadTransaction, Message, openContract, storeMessage, toNano, Transaction, TupleItem, TupleReader } from 'ton-core';
+import { Address, beginCell, Cell, comment, Contract, ContractProvider, ContractState, external, loadTransaction, Message, openContract, storeMessage, toNano, Transaction, Tuple, TupleItem, TupleReader } from 'ton-core';
 import { Maybe } from "../utils/maybe";
 
 export type TonClientParameters = {
@@ -295,47 +295,53 @@ export class TonClient {
     }
 }
 
-function parseStack(src: any[]) {
-    const _parseStack = (src: []) => {
-        let stack: TupleItem[] = [];
-        for (let s of src) {
-            if (s[0] === 'num') {
-                let val = s[1] as string;
-                if (val.startsWith('-')) {
-                    stack.push({ type: 'int', value: -BigInt(val.slice(1)) });
-                } else {
-                    stack.push({ type: 'int', value: BigInt(val) });
-                }
-            } else if (s[0] === 'null') {
-                stack.push({ type: 'null' });
-            } else if (s[0] === 'cell') {
-                stack.push({ type: 'cell', cell: Cell.fromBoc(Buffer.from(s[1].bytes, 'base64'))[0] });
-            } else if (s[0] === 'slice') {
-                stack.push({ type: 'slice', cell: Cell.fromBoc(Buffer.from(s[1].bytes, 'base64'))[0] });
-            } else if (s[0] === 'builder') {
-                stack.push({ type: 'builder', cell: Cell.fromBoc(Buffer.from(s[1].bytes, 'base64'))[0] });
-            } else if (s[0] === 'tuple') {
-                stack.push({ 
-                    type: 'tuple', 
-                    items: _parseStack(s[1].elements.map((e) => {
-                        switch (e["@type"]) {
-                            case "tvm.stackEntryNumber":
-                                return ["num", e.number.number];
-                            case "tvm.stackEntryCell":
-                                return ["cell", e.cell];
-                            default:
-                                throw Error("Unsupported item type: " + e["@type"]);
-                        }
-                    }))
-                })
-            } else {
-                throw Error('Unsupported stack item type: ' + s[0])
-            }
+function parseStackEntry(s: any): TupleItem {
+    switch (s["@type"]) {
+        case "tvm.stackEntryNumber":
+            return { type: 'int', value: BigInt(s.number.number) };
+        case "tvm.stackEntryCell":
+            return { type: 'cell', cell: Cell.fromBase64(s.cell) };
+        case 'tvm.stackEntryTuple':
+            return { type: 'tuple', items: s.tuple.elements.map(parseStackEntry) };
+        default:
+            throw Error("Unsupported item type: " + s["@type"]);
+    }
+}
+
+function parseStackItem(s: any): TupleItem {
+    if (s[0] === 'num') {
+        let val = s[1] as string;
+        if (val.startsWith('-')) {
+            return { type: 'int', value: -BigInt(val.slice(1)) };
+        } else {
+            return { type: 'int', value: BigInt(val) };
         }
-        return stack;
+    } else if (s[0] === 'null') {
+        return { type: 'null' };
+    } else if (s[0] === 'cell') {
+        return { type: 'cell', cell: Cell.fromBoc(Buffer.from(s[1].bytes, 'base64'))[0] };
+    } else if (s[0] === 'slice') {
+        return { type: 'slice', cell: Cell.fromBoc(Buffer.from(s[1].bytes, 'base64'))[0] };
+    } else if (s[0] === 'builder') {
+        return { type: 'builder', cell: Cell.fromBoc(Buffer.from(s[1].bytes, 'base64'))[0] };
+    } else if (s[0] === 'tuple' || s[0] === 'list') {
+        return {
+            type: s[0],
+            items: s[1].elements.map(parseStackEntry)
+        };
+    } else {
+        throw Error('Unsupported stack item type: ' + s[0])
+    }
+}
+
+function parseStack(src: any[]) {
+    let stack: TupleItem[] = [];
+
+    for (let s of src) {
+        stack.push(parseStackItem(s));
     }
 
-    return new TupleReader(_parseStack(stack));
+    return new TupleReader(stack);
 }
 
 function createProvider(client: TonClient, address: Address, init: { code: Cell | null, data: Cell | null } | null): ContractProvider {
