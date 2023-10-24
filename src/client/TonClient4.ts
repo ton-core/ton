@@ -237,7 +237,7 @@ export class TonClient4 {
      */
     async runMethod(seqno: number, address: Address, name: string, args?: TupleItem[]) {
         let tail = args && args.length > 0 ? '/' + toUrlSafe(serializeTuple(args).toBoc({ idx: false, crc32: false }).toString('base64')) : '';
-        let url = this.#endpoint + '/block/' + seqno + '/' + address.toString({ urlSafe: true }) + '/run/' + name + tail;
+        let url = this.#endpoint + '/block/' + seqno + '/' + address.toString({ urlSafe: true }) + '/run/' + encodeURIComponent(name) + tail;
         let res = await axios.get(url, { adapter: this.#adapter, timeout: this.#timeout });
         let runMethod = runMethodCodec.safeParse(res.data);
         if (!runMethod.success) {

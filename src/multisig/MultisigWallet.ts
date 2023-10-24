@@ -162,6 +162,31 @@ export class MultisigWallet {
         await provider.external(cell);
     }
 
+    public async sendOrderWithoutSecretKey(
+        order: MultisigOrder,
+        signature: Buffer,
+        ownerId: number,
+        provider?: ContractProvider
+    ) {
+        if (!provider && !this.provider) {
+            throw Error(
+                'you must specify provider if there is no such property in MultisigWallet instance'
+            );
+        }
+        if (!provider) {
+            provider = this.provider!;
+        }
+
+        let cell = order.toCell(ownerId);
+
+        cell = beginCell()
+            .storeBuffer(signature)
+            .storeSlice(cell.asSlice())
+            .endCell();
+
+        await provider.external(cell);
+    }
+
     public getOwnerIdByPubkey(publicKey: Buffer) {
         for (const [key, value] of this.owners) {
             if (value.subarray(0, 32).equals(publicKey)) {

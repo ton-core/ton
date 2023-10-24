@@ -260,6 +260,57 @@ describe('MultisigWallet', () => {
         }
     });
 
+    it('should accept orders sent by `sendWithoutSecretKey` method', async () => {
+        let multisig = new MultisigWallet(publicKeys, 0, 123, 2);
+        let provider = createProvider(multisig);
+        await multisig.deployInternal(treasure, 10000000000n);
+        await system.run();
+
+        let orderBuilder = new MultisigOrderBuilder(123);
+        orderBuilder.addMessage(
+            createInternalMessage(
+                true,
+                testAddress('address1'),
+                1000000000n,
+                Cell.EMPTY
+            ),
+            3
+        );
+        orderBuilder.addMessage(
+            createInternalMessage(
+                true,
+                testAddress('address2'),
+                0n,
+                beginCell().storeUint(3, 123).endCell()
+            ),
+            3
+        );
+        orderBuilder.addMessage(
+            createInternalMessage(
+                true,
+                testAddress('address1'),
+                2000000000n,
+                Cell.EMPTY
+            ),
+            3
+        );
+
+        const order = orderBuilder.build();
+
+        const signature = sign(order.toCell(3).hash(), secretKeys[3]);
+        await multisig.sendOrderWithoutSecretKey(
+            orderBuilder.build(),
+            signature,
+            3,
+            provider
+        );
+        let txs = await system.run();
+        expect(txs).toHaveLength(1);
+        if (txs[0].description.type == 'generic') {
+            expect(txs[0].description.aborted).toBeFalsy;
+        }
+    });
+
     it('should throw in sendOrder if there is no provider', async () => {
         let multisig = new MultisigWallet(publicKeys, 0, 123, 2);
         let provider = createProvider(multisig);

@@ -1,4 +1,4 @@
-# TON js client
+# TON JS Client
 
 ## 🚨 Repository Deprecated and Moved! 🚨
 
@@ -25,7 +25,7 @@ Cross-platform client for TON blockchain.
 yarn add ton ton-crypto ton-core buffer
 ```
 
-#### Browser polifil
+#### Browser polyfill
 
 ```js
 // Add before using library
@@ -77,6 +77,10 @@ let transfer = await contract.createTransfer({
 ## Docs
 
 [Documentation](https://ton-community.github.io/ton/)
+
+## Acknowledgements
+
+This library is developed by the [Whales Corp.](https://tonwhales.com/) and maintained by [Dan Volkov](https://github.com/dvlkv).
 
 ## License
 
