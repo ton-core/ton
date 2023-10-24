@@ -18,7 +18,7 @@ const getExtensionsArray = async (wallet: OpenedContract<WalletContractV5>) => {
         return await wallet.getExtensionsArray();
     } catch (e) {
         // Handle toncenter bug. Toncenter incorrectly returns 'list' in the stack in case of empty extensions dict
-        if (e && typeof e === 'object' && 'message' in e && e.message === 'Unsupported stack item type: list') {
+        if (e instanceof Error && e.message === 'Unsupported stack item type: list') {
             return [];
         }
         throw e;

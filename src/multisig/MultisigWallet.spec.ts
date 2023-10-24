@@ -8,7 +8,7 @@ import {
     ContractProvider,
     MessageRelaxed,
 } from 'ton-core';
-import { getSecureRandomBytes, keyPairFromSeed } from 'ton-crypto';
+import { getSecureRandomBytes, keyPairFromSeed, sign } from 'ton-crypto';
 import { testAddress, ContractSystem, Treasure } from 'ton-emulator';
 import { MultisigWallet } from './MultisigWallet';
 import { MultisigOrderBuilder } from './MultisigOrderBuilder';
