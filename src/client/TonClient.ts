@@ -36,13 +36,13 @@ export type TonClientParameters = {
 export class TonClient {
     readonly parameters: TonClientParameters;
 
-    #api: HttpApi;
+    private readonly api: HttpApi;
 
     constructor(parameters: TonClientParameters) {
         this.parameters = {
             endpoint: parameters.endpoint
         };
-        this.#api = new HttpApi(this.parameters.endpoint, {
+        this.api = new HttpApi(this.parameters.endpoint, {
             timeout: parameters.timeout,
             apiKey: parameters.apiKey,
             adapter: parameters.httpAdapter
@@ -66,7 +66,7 @@ export class TonClient {
      * @returns stack and gas_used field
      */
     async runMethod(address: Address, name: string, stack: TupleItem[] = []): Promise<{ gas_used: number, stack: TupleReader }> {
-        let res = await this.#api.callGetMethod(address, name, stack);
+        let res = await this.api.callGetMethod(address, name, stack);
         if (res.exit_code !== 0) {
             throw Error('Unable to execute get method. Got exit_code: ' + res.exit_code);
         }
@@ -93,7 +93,7 @@ export class TonClient {
      * @returns stack and gas_used field
     */
     async runMethodWithError(address: Address, name: string, params: any[] = []): Promise<{ gas_used: number, stack: TupleReader, exit_code: number }> {
-        let res = await this.#api.callGetMethod(address, name, params);
+        let res = await this.api.callGetMethod(address, name, params);
         return { gas_used: res.gas_used, stack: parseStack(res.stack), exit_code: res.exit_code };
     }
 
@@ -115,7 +115,7 @@ export class TonClient {
      */
     async getTransactions(address: Address, opts: { limit: number, lt?: string, hash?: string, to_lt?: string, inclusive?: boolean }) {
         // Fetch transactions
-        let tx = await this.#api.getTransactions(address, opts);
+        let tx = await this.api.getTransactions(address, opts);
         let res: Transaction[] = [];
         for (let r of tx) {
             res.push(loadTransaction(Cell.fromBoc(Buffer.from(r.data, 'base64'))[0].beginParse()));
@@ -131,7 +131,7 @@ export class TonClient {
      * @returns transaction or null if not exist
      */
     async getTransaction(address: Address, lt: string, hash: string) {
-        let res = await this.#api.getTransaction(address, lt, hash);
+        let res = await this.api.getTransaction(address, lt, hash);
         if (res) {
             return loadTransaction(Cell.fromBoc(Buffer.from(res.data, 'base64'))[0].beginParse());
         } else {
@@ -144,7 +144,7 @@ export class TonClient {
      * @returns masterchain info
      */
     async getMasterchainInfo() {
-        let r = await this.#api.getMasterchainInfo();
+        let r = await this.api.getMasterchainInfo();
         return {
             workchain: r.init.workchain,
             shard: r.last.shard,
@@ -158,7 +158,7 @@ export class TonClient {
      * @param seqno masterchain seqno
      */
     async getWorkchainShards(seqno: number) {
-        let r = await this.#api.getShards(seqno);
+        let r = await this.api.getShards(seqno);
         return r.map((m) => ({
             workchain: m.workchain,
             shard: m.shard,
@@ -173,7 +173,7 @@ export class TonClient {
      * @param shard
      */
     async getShardTransactions(workchain: number, seqno: number, shard: string) {
-        let tx = await this.#api.getBlockTransactions(workchain, seqno, shard);
+        let tx = await this.api.getBlockTransactions(workchain, seqno, shard);
         if (tx.incomplete) {
             throw Error('Unsupported');
         }
@@ -193,7 +193,7 @@ export class TonClient {
             .store(storeMessage(src))
             .endCell()
             .toBoc();
-        await this.#api.sendBoc(boc);
+        await this.api.sendBoc(boc);
     }
 
     /**
@@ -201,7 +201,7 @@ export class TonClient {
      * @param src source file
      */
     async sendFile(src: Buffer) {
-        await this.#api.sendBoc(src);
+        await this.api.sendBoc(src);
     }
 
     /**
@@ -215,7 +215,7 @@ export class TonClient {
         initData: Cell | null,
         ignoreSignature: boolean
     }) {
-        return await this.#api.estimateFee(address, { body: args.body, initCode: args.initCode, initData: args.initData, ignoreSignature: args.ignoreSignature });
+        return await this.api.estimateFee(address, { body: args.body, initCode: args.initCode, initData: args.initData, ignoreSignature: args.ignoreSignature });
     }
 
     /**
@@ -254,7 +254,7 @@ export class TonClient {
      * @param address contract address
      */
     async getContractState(address: Address) {
-        let info = await this.#api.getAddressInformation(address);
+        let info = await this.api.getAddressInformation(address);
         let balance = BigInt(info.balance);
         let state = info.state as 'frozen' | 'active' | 'uninitialized';
         return {
