@@ -181,6 +181,34 @@ export class TonClient4 {
     }
 
     /**
+     * Load parsed account transactions
+     * @param address address
+     * @param lt last transaction lt
+     * @param hash last transaction hash
+     * @param count number of transactions to load
+     * @returns parsed transactions
+     */
+    async getAccountTransactionsParsed(address: Address, lt: bigint, hash: Buffer, count: number = 20) {
+        let res = await axios.get(
+            this.#endpoint + '/account/' + address.toString({ urlSafe: true }) + '/tx/parsed/' + lt.toString(10) + '/' + toUrlSafe(hash.toString('base64')),
+            {
+                adapter: this.#adapter,
+                timeout: this.#timeout,
+                params: {
+                    count
+                }
+            }
+        );
+        let parsedTransactionsRes = parsedTransactionsCodec.safeParse(res.data);
+
+        if (!parsedTransactionsRes.success) {
+            throw Error('Mailformed response');
+        }
+
+        return parsedTransactionsRes.data as ParsedTransactions;
+    }
+
+    /**
      * Get network config
      * @param seqno block sequence number
      * @param ids optional config ids
@@ -209,7 +237,7 @@ export class TonClient4 {
      */
     async runMethod(seqno: number, address: Address, name: string, args?: TupleItem[]) {
         let tail = args && args.length > 0 ? '/' + toUrlSafe(serializeTuple(args).toBoc({ idx: false, crc32: false }).toString('base64')) : '';
-        let url = this.#endpoint + '/block/' + seqno + '/' + address.toString({ urlSafe: true }) + '/run/' + name + tail;
+        let url = this.#endpoint + '/block/' + seqno + '/' + address.toString({ urlSafe: true }) + '/run/' + encodeURIComponent(name) + tail;
         let res = await axios.get(url, { adapter: this.#adapter, timeout: this.#timeout });
         let runMethod = runMethodCodec.safeParse(res.data);
         if (!runMethod.success) {
@@ -560,13 +588,140 @@ const sendCodec = z.object({
     status: z.number()
 });
 
+const blocksCodec = z.array(z.object({
+    workchain: z.number(),
+    seqno: z.number(),
+    shard: z.string(),
+    rootHash: z.string(),
+    fileHash: z.string()
+}));
+
 const transactionsCodec = z.object({
-    blocks: z.array(z.object({
-        workchain: z.number(),
-        seqno: z.number(),
-        shard: z.string(),
-        rootHash: z.string(),
-        fileHash: z.string()
-    })),
+    blocks: blocksCodec,
     boc: z.string()
 });
+
+const parsedAddressExternalCodec = z.object({
+    bits: z.number(),
+    data: z.string()
+});
+
+const parsedMessageInfoCodec = z.union([
+    z.object({
+        type: z.literal('internal'),
+        value: z.string(),
+        dest: z.string(),
+        src: z.string(),
+        bounced: z.boolean(),
+        bounce: z.boolean(),
+        ihrDisabled: z.boolean(),
+        createdAt: z.number(),
+        createdLt: z.string(),
+        fwdFee: z.string(),
+        ihrFee: z.string()
+    }),
+    z.object({
+        type: z.literal('external-in'),
+        dest: z.string(),
+        src: z.union([parsedAddressExternalCodec, z.null()]),
+        importFee: z.string()
+    }),
+    z.object({
+        type: z.literal('external-out'),
+        dest: z.union([parsedAddressExternalCodec, z.null()])
+    })
+]);
+
+const parsedStateInitCodec = z.object({
+    splitDepth: z.union([z.number(), z.null()]),
+    code: z.union([z.string(), z.null()]),
+    data: z.union([z.string(), z.null()]),
+    special: z.union([z.object({ tick: z.boolean(), tock: z.boolean() }), z.null()])
+});
+
+const parsedMessageCodec = z.object({
+    body: z.string(),
+    info: parsedMessageInfoCodec,
+    init: z.union([parsedStateInitCodec, z.null()])
+});
+
+const accountStatusCodec = z.union([z.literal('uninitialized'), z.literal('frozen'), z.literal('active'), z.literal('non-existing')]);
+
+const txBodyCodec = z.union([
+    z.object({ type: z.literal('comment'), comment: z.string() }),
+    z.object({ type: z.literal('payload'), cell: z.string() }),
+]);
+
+const parsedOperationItemCodec = z.union([
+    z.object({ kind: z.literal('ton'), amount: z.string() }),
+    z.object({ kind: z.literal('token'), amount: z.string() })
+]);
+
+const supportedMessageTypeCodec = z.union([
+    z.literal('jetton::excesses'),
+    z.literal('jetton::transfer'),
+    z.literal('jetton::transfer_notification'),
+    z.literal('deposit'),
+    z.literal('deposit::ok'),
+    z.literal('withdraw'),
+    z.literal('withdraw::all'),
+    z.literal('withdraw::delayed'),
+    z.literal('withdraw::ok'),
+    z.literal('airdrop')
+]);
+
+const opCodec = z.object({
+    type: supportedMessageTypeCodec,
+    options: z.optional(z.record(z.string()))
+});
+
+const parsedOperationCodec = z.object({
+    address: z.string(),
+    comment: z.optional(z.string()),
+    items: z.array(parsedOperationItemCodec),
+    op: z.optional(opCodec)
+});
+
+const parsedTransactionCodec = z.object({
+    address: z.string(),
+    lt: z.string(),
+    hash: z.string(),
+    prevTransaction: z.object({
+        lt: z.string(),
+        hash: z.string()
+    }),
+    time: z.number(),
+    outMessagesCount: z.number(),
+    oldStatus: accountStatusCodec,
+    newStatus: accountStatusCodec,
+    fees: z.string(),
+    update: z.object({
+        oldHash: z.string(),
+        newHash: z.string()
+    }),
+    inMessage: z.union([parsedMessageCodec, z.null()]),
+    outMessages: z.array(parsedMessageCodec),
+    parsed: z.object({
+        seqno: z.union([z.number(), z.null()]),
+        body: z.union([txBodyCodec, z.null()]),
+        status: z.union([z.literal('success'), z.literal('failed'), z.literal('pending')]),
+        dest: z.union([z.string(), z.null()]),
+        kind: z.union([z.literal('out'), z.literal('in')]),
+        amount: z.string(),
+        resolvedAddress: z.string(),
+        bounced: z.boolean(),
+        mentioned: z.array(z.string())
+    }),
+    operation: parsedOperationCodec
+});
+
+const parsedTransactionsCodec = z.object({
+    blocks: blocksCodec,
+    transactions: z.array(parsedTransactionCodec)
+});
+
+export type ParsedTransaction = z.infer<typeof parsedTransactionCodec>;
+export type ParsedTransactions = {
+    blocks: z.infer<typeof blocksCodec>,
+    transactions: ParsedTransaction[]
+};

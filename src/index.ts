@@ -72,3 +72,9 @@ export { GasLimitsPrices, StoragePrices, MsgPrices, WorkchainDescriptor,
     parseBridge, parseProposalSetup, parseValidatorSet, parseVotingSetup,
     parseFullConfig,
     loadConfigParamById, loadConfigParamsAsSlice } from './config/ConfigParser'
+
+//
+// Fees
+//
+
+export { computeExternalMessageFees, computeFwdFees, computeGasPrices, computeMessageForwardFees, computeStorageFees } from './utils/fees';
