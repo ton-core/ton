@@ -20,7 +20,10 @@ import {
     SendMode
 } from "ton-core";
 import { Maybe } from "../utils/maybe";
-import { createWalletTransferV5 } from "./signing/createWalletTransfer";
+import {
+    createWalletTransferV5ExtensionAuth,
+    createWalletTransferV5SignedAuth
+} from "./signing/createWalletTransfer";
 import { OutActionExtended, storeWalletId, WalletId } from "./WalletV5Utils";
 
 
@@ -34,6 +37,11 @@ export type Wallet5BasicSendArgs = {
 export type SingedAuthWallet5SendArgs = Wallet5BasicSendArgs & {
     authType?: 'external' | 'internal';
     secretKey: Buffer;
+}
+
+export type ExternallySingedAuthWallet5SendArgs = Wallet5BasicSendArgs & {
+    authType?: 'external' | 'internal';
+    signer: (buffer: Buffer) => Promise<Buffer>;
 }
 
 export type ExtensionAuthWallet5SendArgs = Wallet5BasicSendArgs & {
@@ -209,7 +217,7 @@ export class WalletContractV5 implements Contract {
     /**
      * Create signed add extension request
      */
-    createAddExtension(args: Wallet5SendArgs & { extensionAddress: Address, }) {
+    createAddExtension(args: Wallet5SendArgs & { extensionAddress: Address }) {
         const { extensionAddress, ...rest } = args;
         return this.createRequest({
             actions: [{
@@ -223,7 +231,7 @@ export class WalletContractV5 implements Contract {
     /**
      * Create signed remove extension request
      */
-    createRemoveExtension(args: Wallet5SendArgs & { extensionAddress: Address, }) {
+    createRemoveExtension(args: Wallet5SendArgs & { extensionAddress: Address }) {
         const { extensionAddress, ...rest } = args;
         return this.createRequest({
             actions: [{
@@ -235,10 +243,29 @@ export class WalletContractV5 implements Contract {
     }
 
     /**
-     * Create signed request
+     * Create signed request or extension auth request
      */
-    createRequest(args: Wallet5SendArgs & { actions: (OutActionSendMsg | OutActionExtended)[], }) {
-        return createWalletTransferV5({
+    createRequest(args: Wallet5SendArgs & { actions: (OutActionSendMsg | OutActionExtended)[] }) {
+        if (args.authType === 'extension') {
+            return createWalletTransferV5ExtensionAuth({
+                ...args,
+                sendMode: args.sendMode ?? SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+                walletId: storeWalletId(this.walletId)
+            })
+        }
+
+        return createWalletTransferV5SignedAuth({
+            ...args,
+            sendMode: args.sendMode ?? SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+            walletId: storeWalletId(this.walletId)
+        })
+    }
+
+    /**
+     * Create asynchronously signed request
+     */
+    createAndSignRequestAsync(args: ExternallySingedAuthWallet5SendArgs & { actions: (OutActionSendMsg | OutActionExtended)[] }) {
+        return createWalletTransferV5SignedAuth({
             ...args,
             sendMode: args.sendMode ?? SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
             walletId: storeWalletId(this.walletId)

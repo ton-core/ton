@@ -9,9 +9,10 @@
 import {randomTestKey} from "../utils/randomTestKey";
 import {Address, internal, OpenedContract, SendMode} from "ton-core";
 import {WalletContractV5} from "./WalletContractV5";
-import {KeyPair} from "ton-crypto";
+import {KeyPair, sign} from "ton-crypto";
 import {createTestClient} from "../utils/createTestClient";
 import {TonClient} from "../client/TonClient";
+import {Buffer} from "buffer";
 
 const getExtensionsArray = async (wallet: OpenedContract<WalletContractV5>) => {
     try {
@@ -56,6 +57,33 @@ describe('WalletContractV5', () => {
                 value: '0.01',
                 body: 'Hello world single transfer!'
             })]
+        });
+
+        await wallet.send(transfer);
+    });
+
+    it('should perform single transfer with async signing', async () => {
+        const seqno = await wallet.getSeqno();
+
+        const signer = (payload: Buffer) => new Promise<Buffer>(r =>
+            setTimeout(() => r(sign(payload, walletKey.secretKey)), 100)
+        );
+
+        const transfer = await wallet.createAndSignRequestAsync({
+            seqno,
+            signer,
+            sendMode: SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
+            actions: [{
+               type: 'sendMsg',
+                outMsg: internal({
+                    bounce: false,
+                    to: 'UQCThZx4clXiDTaFpZNmjC4ULhdt8tHtFNcvL5Q9NcqqlbYF',
+                    value: '0.01',
+                    body: 'Hello world single transfer!'
+                }),
+                mode: SendMode.IGNORE_ERRORS + SendMode.PAY_GAS_SEPARATELY
+
+            }]
         });
 
         await wallet.send(transfer);
