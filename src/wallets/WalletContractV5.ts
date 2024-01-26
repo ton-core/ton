@@ -15,13 +15,13 @@ import {
     ContractProvider, Dictionary,
     internal,
     MessageRelaxed,
-    OutAction,
+    OutActionSendMsg,
     Sender,
     SendMode
 } from "ton-core";
 import { Maybe } from "../utils/maybe";
 import { createWalletTransferV5 } from "./signing/createWalletTransfer";
-import {OutActionExtended, storeWalletId, WalletId} from "./WalletV5Utils";
+import { OutActionExtended, storeWalletId, WalletId } from "./WalletV5Utils";
 
 
 
@@ -32,10 +32,13 @@ export type Wallet5BasicSendArgs = {
 }
 
 export type SingedAuthWallet5SendArgs = Wallet5BasicSendArgs & {
+    authType?: 'external' | 'internal';
     secretKey: Buffer;
 }
 
-export type ExtensionAuthWallet5SendArgs = Wallet5BasicSendArgs & { }
+export type ExtensionAuthWallet5SendArgs = Wallet5BasicSendArgs & {
+    authType: 'extension';
+}
 
 export type Wallet5SendArgs =
     | SingedAuthWallet5SendArgs
@@ -46,7 +49,8 @@ export class WalletContractV5 implements Contract {
 
     static opCodes = {
         auth_extension: 0x6578746e,
-        auth_signed: 0x7369676e
+        auth_signed_external: 0x7369676e,
+        auth_signed_internal: 0x73696e74
     }
 
     static create(args: {
@@ -72,11 +76,11 @@ export class WalletContractV5 implements Contract {
         this.walletId = walletId;
 
         // Build initial code and data
-        let code = Cell.fromBoc(Buffer.from('te6cckEBAQEAIwAIQgLND3fEdsoVqej99mmdJbaOAOcmH9K3vkNG64R7FPAsl9kimVw=', 'base64'))[0];
+        let code = Cell.fromBoc(Buffer.from('te6cckEBAQEAIwAIQgKIfXc9nCJVtIFh6w1bMHOki2Wj0Yf468kmC0T9ahQ69FvSGsM=', 'base64'))[0];
         let data = beginCell()
-            .storeUint(0, 32) // Seqno
+            .storeInt(0, 33) // Seqno
             .store(storeWalletId(this.walletId))
-            .storeBuffer(this.publicKey)
+            .storeBuffer(this.publicKey, 32)
             .storeBit(0) // Empty plugins dict
             .endCell();
         this.init = { code, data };
@@ -140,6 +144,15 @@ export class WalletContractV5 implements Contract {
     }
 
     /**
+     * Get is secret-key authentication enabled
+     */
+    async getIsSecretKeyAuthEnabled(provider: ContractProvider) {
+        let res = await provider.get('is_public_key_enabled', []);
+        const result = res.stack.readNumber();
+        return result !== 0;
+    }
+
+    /**
      * Send signed transfer
      */
     async send(provider: ContractProvider, message: Cell) {
@@ -173,7 +186,7 @@ export class WalletContractV5 implements Contract {
     /**
      * Sign and send request
      */
-    async sendRequest(provider: ContractProvider, args: Wallet5SendArgs & { actions: (OutAction | OutActionExtended)[], }) {
+    async sendRequest(provider: ContractProvider, args: Wallet5SendArgs & { actions: (OutActionSendMsg | OutActionExtended)[], }) {
         const request = this.createRequest(args);
         await this.send(provider, request);
     }
@@ -184,8 +197,8 @@ export class WalletContractV5 implements Contract {
     createTransfer(args: Wallet5SendArgs & { messages: MessageRelaxed[] }) {
         const { messages, ...rest } = args;
 
-        const sendMode = args.sendMode ?? SendMode.PAY_GAS_SEPARATELY;
-        const actions: OutAction[] = messages.map(message => ({ type: 'sendMsg', mode: sendMode, outMsg: message}));
+        const sendMode = args.sendMode ?? SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS;
+        const actions: OutActionSendMsg[] = messages.map(message => ({ type: 'sendMsg', mode: sendMode, outMsg: message}));
 
         return this.createRequest({
             ...rest,
@@ -224,10 +237,10 @@ export class WalletContractV5 implements Contract {
     /**
      * Create signed request
      */
-    createRequest(args: Wallet5SendArgs & { actions: (OutAction | OutActionExtended)[], }) {
+    createRequest(args: Wallet5SendArgs & { actions: (OutActionSendMsg | OutActionExtended)[], }) {
         return createWalletTransferV5({
             ...args,
-            sendMode: args.sendMode ?? SendMode.PAY_GAS_SEPARATELY,
+            sendMode: args.sendMode ?? SendMode.PAY_GAS_SEPARATELY + SendMode.IGNORE_ERRORS,
             walletId: storeWalletId(this.walletId)
         })
     }

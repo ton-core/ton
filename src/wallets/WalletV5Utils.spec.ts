@@ -6,7 +6,7 @@ import {
     Address,
     OutAction,
     storeOutList,
-    MessageRelaxed
+    MessageRelaxed, OutActionSendMsg
 } from "ton-core";
 import {
     loadOutListExtended,
@@ -33,23 +33,39 @@ const mockData = beginCell().storeUint(123, 32).endCell();
 const mockAddress = Address.parseRaw('0:' + '1'.repeat(64))
 
 describe('Wallet V5 utils', () => {
-    const outActionSetDataTag = 0x1ff8ea0b;
+    const outActionSetIsPublicKeyEnabledTag = 0x20cbb95a;
     const outActionAddExtensionTag = 0x1c40db9f;
     const outActionRemoveExtensionTag = 0x5eaef4a4;
     const outActionSendMsgTag = 0x0ec3c86d;
 
-    it('Should serialise set data action', () => {
+    it('Should serialise setIsPublicKeyEnabled action with true flag', () => {
         const action = storeOutActionExtended({
-            type: 'setData',
-            newData: mockData
+            type: 'setIsPublicKeyEnabled',
+            isEnabled: true
         }) ;
 
         const actual = beginCell().store(action).endCell();
 
         const expected = beginCell()
-            .storeUint(outActionSetDataTag, 32)
-            .storeRef(mockData)
+            .storeUint(outActionSetIsPublicKeyEnabledTag, 32)
+            .storeBit(1)
         .endCell();
+
+        expect(expected.equals(actual)).toBeTruthy();
+    });
+
+    it('Should serialise setIsPublicKeyEnabled action with false flag', () => {
+        const action = storeOutActionExtended({
+            type: 'setIsPublicKeyEnabled',
+            isEnabled: false
+        }) ;
+
+        const actual = beginCell().store(action).endCell();
+
+        const expected = beginCell()
+            .storeUint(outActionSetIsPublicKeyEnabledTag, 32)
+            .storeBit(0)
+            .endCell();
 
         expect(expected.equals(actual)).toBeTruthy();
     });
@@ -166,11 +182,16 @@ describe('Wallet V5 utils', () => {
 
     it('Should serialize extended out list', () => {
         const sendMode1 = SendMode.PAY_GAS_SEPARATELY;
+        const isPublicKeyEnabled = false;
 
-        const actions: (OutActionExtended | OutAction)[] = [
+        const actions: (OutActionExtended | OutActionSendMsg)[] = [
             {
                 type: 'addExtension',
                 address: mockAddress
+            },
+            {
+                type: 'setIsPublicKeyEnabled',
+                isEnabled: isPublicKeyEnabled
             },
             {
                 type: 'sendMsg',
@@ -184,20 +205,28 @@ describe('Wallet V5 utils', () => {
         const expected =
             beginCell()
                 .storeUint(1, 1)
-                .store(storeOutActionExtended(actions[0] as OutActionExtended))
+                .storeUint(outActionAddExtensionTag, 32)
+                .storeAddress(mockAddress)
                 .storeRef(
                     beginCell()
-                        .storeUint(0, 1)
+                        .storeUint(1, 1)
+                        .storeUint(outActionSetIsPublicKeyEnabledTag, 32)
+                        .storeBit(isPublicKeyEnabled ? 1 : 0)
                         .storeRef(
                             beginCell()
-                                .storeRef(beginCell().endCell())
-                                .storeUint(outActionSendMsgTag, 32)
-                                .storeUint(sendMode1, 8)
-                                .storeRef(beginCell().store(storeMessageRelaxed(mockMessageRelaxed1)).endCell())
+                                .storeUint(0, 1)
+                                .storeRef(
+                                    beginCell()
+                                        .storeRef(beginCell().endCell())
+                                        .storeUint(outActionSendMsgTag, 32)
+                                        .storeUint(sendMode1, 8)
+                                        .storeRef(beginCell().store(storeMessageRelaxed(mockMessageRelaxed1)).endCell())
+                                        .endCell()
+                                )
                                 .endCell()
                         )
                         .endCell()
-                    )
+                )
                 .endCell()
 
 
@@ -207,11 +236,16 @@ describe('Wallet V5 utils', () => {
 
     it('Should deserialize extended out list', () => {
         const sendMode1 = SendMode.PAY_GAS_SEPARATELY;
+        const isPublicKeyEnabled = true;
 
         const expected: (OutActionExtended | OutAction)[] = [
             {
                 type: 'addExtension',
                 address: mockAddress
+            },
+            {
+                type: 'setIsPublicKeyEnabled',
+                isEnabled: isPublicKeyEnabled
             },
             {
                 type: 'sendMsg',
@@ -223,16 +257,24 @@ describe('Wallet V5 utils', () => {
         const serialized =
             beginCell()
                 .storeUint(1, 1)
-                .store(storeOutActionExtended(expected[0] as OutActionExtended))
+                .storeUint(outActionAddExtensionTag, 32)
+                .storeAddress(mockAddress)
                 .storeRef(
                     beginCell()
-                        .storeUint(0, 1)
+                        .storeUint(1, 1)
+                        .storeUint(outActionSetIsPublicKeyEnabledTag, 32)
+                        .storeBit(isPublicKeyEnabled ? 1 : 0)
                         .storeRef(
                             beginCell()
-                                .storeRef(beginCell().endCell())
-                                .storeUint(outActionSendMsgTag, 32)
-                                .storeUint(sendMode1, 8)
-                                .storeRef(beginCell().store(storeMessageRelaxed(mockMessageRelaxed1)).endCell())
+                                .storeUint(0, 1)
+                                .storeRef(
+                                    beginCell()
+                                        .storeRef(beginCell().endCell())
+                                        .storeUint(outActionSendMsgTag, 32)
+                                        .storeUint(sendMode1, 8)
+                                        .storeRef(beginCell().store(storeMessageRelaxed(mockMessageRelaxed1)).endCell())
+                                        .endCell()
+                                )
                                 .endCell()
                         )
                         .endCell()
@@ -255,6 +297,10 @@ describe('Wallet V5 utils', () => {
 
             if (item1.type === 'addExtension' && item2.type === 'addExtension') {
                 expect(item1.address.equals(item2.address)).toBeTruthy();
+            }
+
+            if (item1.type === 'setIsPublicKeyEnabled' && item2.type === 'setIsPublicKeyEnabled') {
+                expect(item1.isEnabled).toEqual(item2.isEnabled);
             }
         })
     });

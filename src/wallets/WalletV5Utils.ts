@@ -3,17 +3,11 @@ import {
     beginCell,
     BitReader, BitString,
     Builder,
-    Cell,
     loadOutList,
-    OutAction,
+    OutActionSendMsg,
     Slice,
     storeOutList
 } from 'ton-core';
-
-export interface OutActionSetData {
-    type: 'setData';
-    newData: Cell;
-}
 
 export interface OutActionAddExtension {
     type: 'addExtension';
@@ -25,12 +19,17 @@ export interface OutActionRemoveExtension {
     address: Address;
 }
 
-export type OutActionExtended = OutActionSetData | OutActionAddExtension | OutActionRemoveExtension;
+export interface OutActionSetIsPublicKeyEnabled {
+    type: 'setIsPublicKeyEnabled';
+    isEnabled: boolean;
+}
 
-const outActionSetDataTag = 0x1ff8ea0b;
-function storeOutActionSetData(action: OutActionSetData) {
+export type OutActionExtended = OutActionSetIsPublicKeyEnabled | OutActionAddExtension | OutActionRemoveExtension;
+
+const outActionSetIsPublicKeyEnabledTag = 0x20cbb95a;
+function storeOutActionSetIsPublicKeyEnabled(action: OutActionSetIsPublicKeyEnabled) {
     return (builder: Builder) => {
-        builder.storeUint(outActionSetDataTag, 32).storeRef(action.newData)
+        builder.storeUint(outActionSetIsPublicKeyEnabledTag, 32).storeUint(action.isEnabled ? 1 : 0, 1)
     }
 }
 
@@ -49,25 +48,26 @@ function storeOutActionRemoveExtension(action: OutActionRemoveExtension) {
 }
 
 export function storeOutActionExtended(action: OutActionExtended) {
-    if (action.type === 'setData') {
-        return storeOutActionSetData(action);
+    switch (action.type) {
+        case 'setIsPublicKeyEnabled':
+            return storeOutActionSetIsPublicKeyEnabled(action);
+        case 'addExtension':
+            return storeOutActionAddExtension(action);
+        case 'removeExtension':
+            return storeOutActionRemoveExtension(action);
+        default:
+            throw new Error('Unknown action type' + (action as OutActionExtended)?.type);
     }
-
-    if (action.type === 'addExtension') {
-        return storeOutActionAddExtension(action);
-    }
-
-    return storeOutActionRemoveExtension(action);
 }
 
 export function loadOutActionExtended(slice: Slice): OutActionExtended {
     const tag = slice.loadUint(32);
 
     switch (tag) {
-        case outActionSetDataTag:
+        case outActionSetIsPublicKeyEnabledTag:
             return {
-                type: 'setData',
-                newData: slice.loadRef()
+                type: 'setIsPublicKeyEnabled',
+                isEnabled: !!slice.loadUint(1)
             }
         case outActionAddExtensionTag:
             return {
@@ -84,13 +84,13 @@ export function loadOutActionExtended(slice: Slice): OutActionExtended {
     }
 }
 
-export function isOutActionExtended(action: OutAction | OutActionExtended): action is OutActionExtended {
+export function isOutActionExtended(action: OutActionSendMsg | OutActionExtended): action is OutActionExtended {
     return (
-        action.type === 'setData' || action.type === 'addExtension' || action.type === 'removeExtension'
+        action.type === 'setIsPublicKeyEnabled' || action.type === 'addExtension' || action.type === 'removeExtension'
     );
 }
 
-export function storeOutListExtended(actions: (OutActionExtended | OutAction)[]) {
+export function storeOutListExtended(actions: (OutActionExtended | OutActionSendMsg)[]) {
     const [action, ...rest] = actions;
 
     if (!action || !isOutActionExtended(action)) {
@@ -101,7 +101,7 @@ export function storeOutListExtended(actions: (OutActionExtended | OutAction)[])
         return (builder: Builder) => {
             builder
                 .storeUint(0, 1)
-                .storeRef(beginCell().store(storeOutList(actions as OutAction[])).endCell())
+                .storeRef(beginCell().store(storeOutList(actions as OutActionSendMsg[])).endCell())
         }
     }
 
@@ -112,8 +112,8 @@ export function storeOutListExtended(actions: (OutActionExtended | OutAction)[])
     }
 }
 
-export function loadOutListExtended(slice: Slice): (OutActionExtended | OutAction)[] {
-    const actions: (OutActionExtended | OutAction)[] = [];
+export function loadOutListExtended(slice: Slice): (OutActionExtended | OutActionSendMsg)[] {
+    const actions: (OutActionExtended | OutActionSendMsg)[] = [];
 
     while (slice.loadUint(1)) {
         const action = loadOutActionExtended(slice);
@@ -122,7 +122,12 @@ export function loadOutListExtended(slice: Slice): (OutActionExtended | OutActio
         slice = slice.loadRef().beginParse();
     }
 
-    return actions.concat(loadOutList(slice.loadRef().beginParse()));
+    const commonAction  = loadOutList(slice.loadRef().beginParse());
+    if (commonAction.some(i => i.type === 'setCode')) {
+        throw new Error("Can't deserialize actions list: only sendMsg actions are allowed for wallet v5");
+    }
+
+    return actions.concat(commonAction as OutActionSendMsg[]);
 }
 
 export interface WalletId {
