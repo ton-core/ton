@@ -6,9 +6,18 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import { beginCell, Builder, MessageRelaxed, OutAction, storeMessageRelaxed } from "ton-core";
+import {beginCell, Builder, Cell, MessageRelaxed, OutActionSendMsg, storeMessageRelaxed} from "ton-core";
 import { sign } from "ton-crypto";
 import { Maybe } from "../../utils/maybe";
+import {
+    ExtensionAuthWallet5SendArgs, ExternallySingedAuthWallet5SendArgs, SingedAuthWallet5SendArgs, Wallet5BasicSendArgs,
+    Wallet5SendArgs,
+    WalletContractV5
+} from "../WalletContractV5";
+import {
+    OutActionExtended,
+    storeOutListExtended
+} from "../WalletV5Utils";
 
 export function createWalletTransferV1(args: { seqno: number, sendMode: number, message: Maybe<MessageRelaxed>, secretKey: Buffer }) {
 
@@ -148,4 +157,50 @@ export function createWalletTransferV4(args: {
         .endCell();
 
     return body;
+}
+
+export function createWalletTransferV5ExtensionAuth(args: Wallet5BasicSendArgs & { actions: (OutActionSendMsg | OutActionExtended)[], walletId: (builder: Builder) => void }) {
+    // Check number of actions
+    if (args.actions.length > 255) {
+        throw Error("Maximum number of OutActions in a single request is 255");
+    }
+
+    return beginCell()
+        .storeUint(WalletContractV5.opCodes.auth_extension, 32)
+        .store(storeOutListExtended(args.actions))
+        .endCell();
+}
+
+export function createWalletTransferV5SignedAuth<T extends ExternallySingedAuthWallet5SendArgs | SingedAuthWallet5SendArgs>
+(args: T & { actions: (OutActionSendMsg | OutActionExtended)[], walletId: (builder: Builder) => void }): T extends ExternallySingedAuthWallet5SendArgs ? Promise<Cell> : Cell {
+    // Check number of actions
+    if (args.actions.length > 255) {
+        throw Error("Maximum number of OutActions in a single request is 255");
+    }
+
+    const message = beginCell().store(args.walletId);
+    if (args.seqno === 0) {
+        for (let i = 0; i < 32; i++) {
+            message.storeBit(1);
+        }
+    } else {
+        message.storeUint(args.timeout || Math.floor(Date.now() / 1e3) + 60, 32); // Default timeout: 60 seconds
+    }
+
+    message.storeUint(args.seqno, 32).store(storeOutListExtended(args.actions));
+
+    const packResult = (signature: Buffer) => beginCell()
+            .storeUint(args.authType === 'internal' ? WalletContractV5.opCodes.auth_signed_internal : WalletContractV5.opCodes.auth_signed_external, 32)
+            .storeBuffer(signature)
+            .storeBuilder(message)
+            .endCell();
+
+    const payloadToSign = message.endCell().hash();
+    if ('secretKey' in args) {
+        const signature = sign(payloadToSign, args.secretKey);
+        return packResult(signature) as T extends ExternallySingedAuthWallet5SendArgs ? Promise<Cell> : Cell;
+    }
+    // Sign message
+
+    return args.signer(payloadToSign).then(packResult) as T extends ExternallySingedAuthWallet5SendArgs ? Promise<Cell> : Cell;
 }
