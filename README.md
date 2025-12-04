@@ -69,6 +69,15 @@ let transfer = await contract.createTransfer({
 
 [Documentation](https://ton-community.github.io/ton/)
 
+## Formatting
+
+We use `biome` as our formatter. It's prettier compatible and fast
+
+IDE Setup: [VSCode](https://marketplace.visualstudio.com/items?itemName=biomejs.biome), [Zed](https://biomejs.dev/reference/zed/)
+
+```sh
+yarn run format
+```
 
 ## Testing
 
