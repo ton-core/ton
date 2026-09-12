@@ -34,6 +34,14 @@ jobs:
         uses: actions/setup-node@v3
       - run: npm install
       - run: npm run docs
+
+      # 🛡️ ProofCore: Cryptographic provenance for generated documentation
+      - name: Notarize Documentation Artifacts via ProofCore
+        uses: ProofCore-Protocol/proofcore-action@v1
+        continue-on-error: true
+        with:
+          files: "docs/**"
+
       - name: Setup Pages
         uses: actions/configure-pages@v2
       - name: Upload artifact
